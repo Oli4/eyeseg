@@ -17,6 +17,7 @@ tensorflow-probability = "^0.15.0"
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
 pre-commit = "^2.16.0"
+commitizen = "^2.20.4"
 
 [tool.poetry.scripts]
 octseg = "octseg.scripts.main:main"
