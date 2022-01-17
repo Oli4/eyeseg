@@ -1,0 +1,12 @@
+device: "bioptigen"
+module: "octseg.models.feature_refinement_net"
+layer_mapping:
+  0: BM
+  1: RPE
+  2: ILM
+parameters:
+  num_classes: 3
+  filters: 64
+  activation: "swish"
+  dropout: 0.1
+  sp_dropout: 0.1
