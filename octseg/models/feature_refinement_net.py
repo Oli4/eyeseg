@@ -2,7 +2,7 @@ from tensorflow.keras import layers
 from tensorflow.keras.models import Model
 import tensorflow as tf
 
-from .utils import get_dilation_convblock, get_output
+from octseg.models.parts import get_dilation_convblock, get_output
 
 
 def model(

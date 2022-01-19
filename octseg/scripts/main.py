@@ -13,10 +13,5 @@ def predict():
     pass
 
 
-@main.command()
-def quantify():
-    print("quantify")
-
-
-predict.add_command(layers)
 predict.add_command(drusen)
+predict.add_command(layers)

@@ -1,7 +1,7 @@
 from tensorflow.keras import layers
 from tensorflow.keras.models import Model
 
-from utils import get_dilation_convblock, get_msgb, get_output
+from octseg.models.parts import get_dilation_convblock, get_msgb, get_output
 
 
 def gated_dilation_net(

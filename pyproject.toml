@@ -13,6 +13,7 @@ PyYAML = "^6.0"
 tensorflow = "^2.7.0"
 tensorflow-addons = "^0.15.0"
 tensorflow-probability = "^0.15.0"
+scikit-image = "0.18.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
