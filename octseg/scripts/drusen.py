@@ -1,5 +1,7 @@
 import click
 from pathlib import Path
+import logging
+
 from eyepy.core.drusen import drusen2d, filter_by_height
 import eyepy as ep
 from tqdm import tqdm
@@ -10,18 +12,10 @@ import pandas as pd
 from octseg.scripts.utils import find_volumes
 from octseg.grids import grid
 
+logger = logging.getLogger(__name__)
+
 
 @click.command()
-@click.option(
-    "--output_path",
-    type=click.Path(exists=True),
-    help="Location to store the results. The default is processed/ in data_path",
-)
-@click.option(
-    "--overwrite/--no-overwrite",
-    default=False,
-    help="Whether to overwrite existing layers.",
-)
 @click.option(
     "--radii",
     "-r",
@@ -53,28 +47,20 @@ from octseg.grids import grid
     default=2,
     help="Minimum height for drusen to be included",
 )
-@click.argument("data_path", type=click.Path(exists=True), default="/home/data")
-def drusen(
-    data_path, output_path, overwrite, drusen_threshold, radii, sectors, offsets
-):
+def drusen(ctx: click.Context, drusen_threshold, radii, sectors, offsets):
     """Compute drusen from BM and RPE layer segmentation
 
-    :param data_path:
-    :param output_path:
-    :param overwrite:
+    \f
     :param drusen_threshold:
     :param radii:
     :param sectors:
     :param offsets:
     :return:
     """
-    data_path = Path(data_path)
-    if output_path is None:
-        output_path = Path(data_path) / "processed"
-    else:
-        output_path = Path(output_path)
+    input_path = ctx.obj["input_path"]
+    output_path = ctx.obj["output_path"]
 
-    all_volumes = find_volumes(data_path)
+    all_volumes = find_volumes(input_path)
     data_readers = {"vol": ep.Oct.from_heyex_vol, "xml": ep.Oct.from_heyex_xml}
     # Read data
     no_layers_volumes = []

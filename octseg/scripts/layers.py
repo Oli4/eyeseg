@@ -1,8 +1,9 @@
 import click
 from pathlib import Path
+import logging
 
 from importlib import resources
-import octseg
+
 from octseg.models import weights as weights_resources
 from octseg.models.utils import load_model
 from octseg.scripts.utils import find_volumes
@@ -12,24 +13,21 @@ import numpy as np
 import eyepy as ep
 import pickle
 
+logger = logging.getLogger(__name__)
+
 
 @click.command()
 @click.option(
     "--gpu", type=int, default=0, help="Number of the GPU if more than one is available"
 )
 @click.option(
-    "--output_path",
-    type=click.Path(exists=True),
-    help="Location to store the results. The default is processed/ in data_path",
-)
-@click.option(
     "--overwrite/--no-overwrite",
     default=False,
     help="Whether to overwrite existing layers.",
 )
-@click.argument("data_path", type=click.Path(exists=True), default="/home/data")
 @click.argument("model_id", type=click.STRING, default="2c41ukad")
-def layers(data_path, output_path, model_id, overwrite, gpu):
+@click.pass_context
+def layers(ctx: click.Context, model_id, overwrite, gpu):
     """Predict OCT layers
 
     \b
@@ -43,20 +41,17 @@ def layers(data_path, output_path, model_id, overwrite, gpu):
     DATA_PATH: Path to your data. Currently only Spectrals XML and VOL exports are supported.
     \f
     """
-    data_path = Path(data_path)
-    if output_path is None:
-        output_path = Path(data_path) / "processed"
-    else:
-        output_path = Path(output_path)
-
-    output_path.mkdir(parents=True, exist_ok=True)
+    input_path = ctx.obj["input_path"]
+    output_path = ctx.obj["output_path"]
 
     # Check if specified model is available
     if not model_id in list(resources.contents(weights_resources)):
-        raise ValueError("The specified model is not available. Check the --help")
+        msg = f"A model with ID {model_id} is not available. Check 'octseg layers --help' for available models."
+        logging.error(msg)
+        raise ValueError(msg)
 
     # Find volumes
-    volumes = find_volumes(data_path)
+    volumes = find_volumes(input_path)
 
     # Check for which volumes layers need to be predicted
     if overwrite == False:
@@ -76,7 +71,8 @@ def layers(data_path, output_path, model_id, overwrite, gpu):
         gpus = tf.config.list_physical_devices("GPU")
         tf.config.experimental.set_visible_devices(gpus[gpu], "GPU")
     except IndexError:
-        print("No GPU found, using the CPU instead.")
+        msg = "No GPU found, using the CPU instead."
+        logging.info(msg)
 
     data_readers = {"vol": ep.Oct.from_heyex_vol, "xml": ep.Oct.from_heyex_xml}
     # Predict layers and save
