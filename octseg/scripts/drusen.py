@@ -93,7 +93,7 @@ def drusen(ctx: click.Context, drusen_threshold, radii, sectors, offsets):
     csv = pd.DataFrame.from_records(results)
     csv = csv.set_index(["Visit", "Laterality"])
     csv = csv.sort_index()
-    csv.to_csv(output_path / f"results.csv")
+    csv.to_csv(output_path / f"drusen_results.csv")
 
 
 def quantify_drusen(oct_obj, radii, n_sectors, offsets):

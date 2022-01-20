@@ -18,12 +18,15 @@ logger = logging.getLogger(__name__)
 
 @click.command()
 @click.option(
-    "--gpu", type=int, default=0, help="Number of the GPU if more than one is available"
+    "--gpu",
+    type=int,
+    default=0,
+    help="Number of the GPU if more than one is available. Default is 0.",
 )
 @click.option(
     "--overwrite/--no-overwrite",
     default=False,
-    help="Whether to overwrite existing layers.",
+    help="Whether to overwrite existing layers. Default is --no-overwrite.",
 )
 @click.argument("model_id", type=click.STRING, default="2c41ukad")
 @click.pass_context
@@ -35,10 +38,6 @@ def layers(ctx: click.Context, model_id, overwrite, gpu):
         Pretrained models:
             Spectralis:
                 2c41ukad: 3 classes (BM, RPE, EZ) - (Default)
-            Bioptigen:
-                3avqygsi: 3 classes (BM, IBRPE, ILM)
-
-    DATA_PATH: Path to your data. Currently only Spectrals XML and VOL exports are supported.
     \f
     """
     input_path = ctx.obj["input_path"]

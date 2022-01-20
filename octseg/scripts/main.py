@@ -46,9 +46,8 @@ def main(ctx, input_path, output_path, log_level):
     else:
         output_path = Path(output_path)
 
-    output_path.mkdir(parents=True, exist_ok=True)
-    ctx.obj["input_path"] = input_path
-    ctx.obj["output_path"] = output_path
+    ctx.obj["input_path"] = Path(input_path)
+    ctx.obj["output_path"] = Path(output_path)
 
 
 main.add_command(drusen)
