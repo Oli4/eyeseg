@@ -53,7 +53,7 @@ def layers(ctx: click.Context, model_id, overwrite, gpu):
     volumes = find_volumes(input_path)
 
     # Check for which volumes layers need to be predicted
-    if overwrite == False:
+    if overwrite is False and output_path.is_dir():
         # Remove path from volumes if layers are found in the output location
         precomputed_layers = [
             p.name for p in output_path.iterdir() if (p / "layers.pkl").exists()

@@ -47,6 +47,7 @@ logger = logging.getLogger(__name__)
     default=2,
     help="Minimum height for drusen to be included",
 )
+@click.pass_context
 def drusen(ctx: click.Context, drusen_threshold, radii, sectors, offsets):
     """Compute drusen from BM and RPE layer segmentation
 
