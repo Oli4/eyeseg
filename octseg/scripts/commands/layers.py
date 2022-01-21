@@ -1,5 +1,4 @@
 import click
-from pathlib import Path
 import logging
 
 from importlib import resources
@@ -13,7 +12,7 @@ import numpy as np
 import eyepy as ep
 import pickle
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("octseg.layers")
 
 
 @click.command()
@@ -46,7 +45,7 @@ def layers(ctx: click.Context, model_id, overwrite, gpu):
     # Check if specified model is available
     if not model_id in list(resources.contents(weights_resources)):
         msg = f"A model with ID {model_id} is not available. Check 'octseg layers --help' for available models."
-        logging.error(msg)
+        logger.error(msg)
         raise ValueError(msg)
 
     # Find volumes
@@ -71,12 +70,15 @@ def layers(ctx: click.Context, model_id, overwrite, gpu):
         tf.config.experimental.set_visible_devices(gpus[gpu], "GPU")
     except IndexError:
         msg = "No GPU found, using the CPU instead."
-        logging.info(msg)
+        logger.warning(msg)
 
     data_readers = {"vol": ep.Oct.from_heyex_vol, "xml": ep.Oct.from_heyex_xml}
     # Predict layers and save
     for datatype, volumes in volumes.items():
-        for path in tqdm(volumes):
+        for path in tqdm(
+            volumes,
+            desc="Volumes: ",
+        ):
             # Load data
             data = data_readers[datatype](path)
 
@@ -87,6 +89,8 @@ def layers(ctx: click.Context, model_id, overwrite, gpu):
             output_dir.mkdir(parents=True, exist_ok=True)
             with open(output_dir / ("layers.pkl"), "wb") as myfile:
                 pickle.dump(data.layers, myfile)
+
+    click.echo("\nPredicted OCT layers are saved. You can now use the 'drusen' command")
 
 
 def get_layers(data, model_id):

@@ -12,7 +12,7 @@ import pandas as pd
 from octseg.scripts.utils import find_volumes
 from octseg.grids import grid
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("octseg.drusen")
 
 
 @click.command()
@@ -91,10 +91,18 @@ def drusen(ctx: click.Context, drusen_threshold, radii, sectors, offsets):
             results.append(quantify_drusen(data, radii, sectors, offsets))
 
     # Save quantification results as csv
-    csv = pd.DataFrame.from_records(results)
-    csv = csv.set_index(["Visit", "Laterality"])
-    csv = csv.sort_index()
-    csv.to_csv(output_path / f"drusen_results.csv")
+    if len(results) > 0:
+        csv = pd.DataFrame.from_records(results)
+        csv = csv.set_index(["Visit", "Laterality"])
+        csv = csv.sort_index()
+        csv.to_csv(output_path / f"drusen_results.csv")
+
+        click.echo(f"Drusen quantification saved for {len(csv)} volumes.")
+
+    if len(no_layers_volumes) > 0:
+        click.echo(
+            f"No retinal layers found for {len(no_layers_volumes)} volumes. To predict layers run the 'layers' command."
+        )
 
 
 def quantify_drusen(oct_obj, radii, n_sectors, offsets):

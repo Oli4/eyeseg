@@ -100,5 +100,5 @@ docker load -i image_name.tar.gz
 To use the image you need to start a container from the image, having the data mounted you want to process.
 
 ```shell
-docker run -u $(id -u):$(id -g) -v YOUR_DATA_PATH:/home/data -it medvisbonn/octseg:0.1-cpu
+docker run -u $(id -u):$(id -g) --gpus=all -v YOUR_DATA_PATH:/home/data -it medvisbonn/octseg:0.1-gpu
 ```
