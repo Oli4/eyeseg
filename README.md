@@ -82,3 +82,23 @@ cz commit
 
 ### Create a new version and publish to PyPI
 Version bumping and publishing to PyPI is done automatically via Github Actions, based on your commit message, when pushing changes to the master.
+
+
+### Build a docker image
+To build a docker image from the current code run
+
+```shell
+bash ./scripts/make_docker_image.sh
+```
+
+The image can be loaded with
+
+```shell
+docker load -i image_name.tar.gz
+```
+
+To use the image you need to start a container from the image, having the data mounted you want to process.
+
+```shell
+docker run -u $(id -u):$(id -g) -v YOUR_DATA_PATH:/home/data -it medvisbonn/octseg:0.1-cpu
+```
