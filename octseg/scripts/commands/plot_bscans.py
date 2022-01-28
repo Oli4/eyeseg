@@ -56,6 +56,8 @@ def plot_bscans(ctx: click.Context, drusen, layers, volumes):
         if sum([len(v) for v in new_volumes.values()]) == 0:
             sys.exit()
         volumes = new_volumes
+    else:
+        volumes = available_volumes
 
     data_readers = {"vol": ep.Oct.from_heyex_vol, "xml": ep.Oct.from_heyex_xml}
     # Read data
