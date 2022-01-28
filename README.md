@@ -14,6 +14,14 @@ Your data has to be in the Spectralis XML or VOL export format. In case of the X
 ## Usage
 This package ships a single application called `octseg`. You can run this application without any arguments to see a help message.
 
+### Check your data for common problems
+
+To check mounted data for common problems such as inverted contrast and multiple exports per directory run
+
+```shell
+octseg -i /home/data check
+```
+
 ### Segment OCT layers
 To segment layers use the `octseg layers` command. See examples below:
 
@@ -27,12 +35,19 @@ To segment layers use the `octseg layers` command. See examples below:
     octseg -i /path/to/data -o /path/to/processed layers
     ```
 
-### Compute and quantify Drusen
-To compute and quantify drusen use the `octseg drusen` command. Make sure the output path is the same as you used for the `layers` command. Results are saved in a file `drusen_results.csv` under the output path. See examples below:
+### Compute Drusen
+To compute drusen use the `octseg drusen` command. Make sure the output path is the same as you used for the `octseg layers` command.
 
-+ Compute and quantify drusen for volumes located in the current folder and layers saved in ./processed. The options in this example command specify the default quantification grid.
++ Compute drusen for volumes located in the current folder and layers saved in ./processed. Here a default drusen threshold of 2 is used for filtering drusen.
     ```shell
-    octseg drusen -r 0.8 -r 1.8 -s 1 -s 4 -o 0 -o 45
+    octseg drusen
+    ```
+
+### Quantify Drusen
+To quantify drusen use the `octseg quantify` command. Make sure the output path is the same as you used for the `octseg drusen` command. Results are saved in a file `drusen_results.csv` under the output path. See an example below:
++ Quantify drusen for volumes located in the current folder and drusen saved in ./processed. The options in this example command specify the default quantification grid.
+    ```shell
+    octseg quantify -r 0.8 -r 1.8 -s 1 -s 4 -o 0 -o 45
     ```
 
 #### The quantification grid
@@ -46,11 +61,26 @@ Arbitrary grids can be configured:
 By default the first sector starts on the nasal side from the horizontal line and subsequent sectors are added counter-clockwise for OD volumes and clockwise for OS volumes. See examples below:
 
 + Quantification grids for parameters `-r 1 -r 2 -s 1 -s 4 -o 0 -o 45`
+
 ![](./docs/grid1.jpeg)
 
 + Quantification grids for parameters `-r 1 -r 2 -r 3 -s 1 -s 4 -s 8 -o 0 -o 45, -o 45`
+
 ![](./docs/grid2.jpeg)
 
+### Plot enface overviews
+To plot enface overviews with an overlay of the computed drusen use the 'octseg plot-enface' command. Make sure the output path is the same as you used for the `octseg drusen` command.
++ Plot the localizer image with drusen overlay and the B-scan area and positions indicated.
+    ```shell
+    octseg plot-enface --drusen --bscan-area --bscan-position
+    ```
+
+### Plot B-scans
+To plot bscans with an overlay of the computed drusen and predicted layers use the 'octseg plot-bscans' command. Make sure the output path is the same as you used for the `octseg drusen` command.
++ Plot bscans for the volumes indicated by the -v option. Without this option B-scans for all available volumes are plotted. If you want to plot predicted layers specify them with the -l option. By default no layers are plotted.
+    ```shell
+    octseg plot-bscans --drusen -l BM -l RPE -v volume_name -v volume_name2
+    ```
 
 ## Development
 To get started clone this repository.
@@ -85,20 +115,26 @@ Version bumping and publishing to PyPI is done automatically via Github Actions,
 
 
 ### Build a docker image
-To build a docker image from the current code run
+To build a docker image from the current code and export it to a archive run
 
 ```shell
 bash ./scripts/make_docker_image.sh
 ```
 
-The image can be loaded with
+The image can be loaded from the archive with
 
 ```shell
-docker load -i image_name.tar.gz
+docker load -i docker_octseg-VERSION-gpu.tar.gz
 ```
 
 To use the image you need to start a container from the image, having the data mounted you want to process.
 
 ```shell
-docker run -u $(id -u):$(id -g) --gpus=all -v YOUR_DATA_PATH:/home/data -it medvisbonn/octseg:0.1-gpu
+docker run -u $(id -u):$(id -g) --gpus=all -v YOUR_DATA_PATH:/home/data -it medvisbonn/octseg:VERSION-gpu
 ```
+
+### Remarks for using the docker image
+
++ You need `nvidia-docker2` installed for GPU access
++ To make data available in the container you need to mount the respective folder when starting the container
++ If you use the rootless version of docker do not use the `-u` option

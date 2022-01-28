@@ -1,8 +1,12 @@
 import click
 from pathlib import Path
+from octseg.scripts.commands.check import check
 from octseg.scripts.commands.layers import layers
 from octseg.scripts.commands.drusen import drusen
-from octseg.scripts.commands.check import check
+from octseg.scripts.commands.quantify import quantify
+from octseg.scripts.commands.plot_enface import plot_enface
+from octseg.scripts.commands.plot_bscans import plot_bscans
+
 
 import logging
 import warnings
@@ -70,6 +74,9 @@ def main(ctx, input_path, output_path, log_level):
     ctx.obj["output_path"] = Path(output_path)
 
 
-main.add_command(drusen)
-main.add_command(layers)
 main.add_command(check)
+main.add_command(layers)
+main.add_command(drusen)
+main.add_command(quantify)
+main.add_command(plot_enface)
+main.add_command(plot_bscans)

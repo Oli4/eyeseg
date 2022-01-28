@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "octseg"
-version = "0.1.0"
+version = "0.2.0"
 description = ""
 authors = ["Olivier Morelle <oli4morelle@gmail.com>"]
 

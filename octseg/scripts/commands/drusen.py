@@ -17,56 +17,46 @@ logger = logging.getLogger("octseg.drusen")
 
 @click.command()
 @click.option(
-    "--radii",
-    "-r",
-    type=click.FLOAT,
-    multiple=True,
-    default=[0.8, 1.8],
-    help="Radii for quantification grid in mm",
-)
-@click.option(
-    "--sectors",
-    "-s",
-    type=click.INT,
-    multiple=True,
-    default=[1, 4],
-    help="Number of Sectors corresponding to radii",
-)
-@click.option(
-    "--offsets",
-    "-o",
-    type=click.FLOAT,
-    multiple=True,
-    default=[0.0, 45.0],
-    help="Angular offset from the horizontal line for sectors in degree.",
-)
-@click.option(
     "--drusen_threshold",
     "-t",
     type=click.INT,
     default=2,
     help="Minimum height for drusen to be included",
 )
+@click.option(
+    "--overwrite/--no-overwrite",
+    default=False,
+    help="Whether to overwrite existing drusen. Default is --no-overwrite.",
+)
 @click.pass_context
-def drusen(ctx: click.Context, drusen_threshold, radii, sectors, offsets):
+def drusen(ctx: click.Context, drusen_threshold, overwrite):
     """Compute drusen from BM and RPE layer segmentation
 
     \f
     :param drusen_threshold:
-    :param radii:
-    :param sectors:
-    :param offsets:
     :return:
     """
     input_path = ctx.obj["input_path"]
     output_path = ctx.obj["output_path"]
 
-    all_volumes = find_volumes(input_path)
+    volumes = find_volumes(input_path)
+
+    # Check for which volumes drusen need to be predicted
+    if overwrite is False and output_path.is_dir():
+        # Remove path from volumes if layers are found in the output location
+        precomputed_drusen = [
+            p.name for p in output_path.iterdir() if (p / "drusen.pkl").exists()
+        ]
+        for datatype in volumes.keys():
+            volumes[datatype] = [
+                v for v in volumes[datatype] if v.name not in precomputed_drusen
+            ]
+
     data_readers = {"vol": ep.Oct.from_heyex_vol, "xml": ep.Oct.from_heyex_xml}
     # Read data
     no_layers_volumes = []
     results = []
-    for datatype, volumes in all_volumes.items():
+    for datatype, volumes in volumes.items():
         for path in tqdm(volumes):
             # Load data
             data = data_readers[datatype](path)
@@ -86,63 +76,16 @@ def drusen(ctx: click.Context, drusen_threshold, radii, sectors, offsets):
 
             # Compute drusen
             drusen = drusen2d(data.layers["RPE"], data.layers["BM"], data.shape)
-            data._drusen = filter_by_height(drusen, minimum_height=drusen_threshold)
-
-            results.append(quantify_drusen(data, radii, sectors, offsets))
-
-    # Save quantification results as csv
-    if len(results) > 0:
-        csv = pd.DataFrame.from_records(results)
-        csv = csv.set_index(["Visit", "Laterality"])
-        csv = csv.sort_index()
-        csv.to_csv(output_path / f"drusen_results.csv")
-
-        click.echo(f"Drusen quantification saved for {len(csv)} volumes.")
+            clean_drusen = filter_by_height(drusen, minimum_height=drusen_threshold)
+            drusen_filepath = output_path / path.stem / "drusen.pkl"
+            with open(drusen_filepath, "wb") as myfile:
+                pickle.dump(clean_drusen, myfile)
 
     if len(no_layers_volumes) > 0:
         click.echo(
             f"No retinal layers found for {len(no_layers_volumes)} volumes. To predict layers run the 'layers' command."
         )
-
-
-def quantify_drusen(oct_obj, radii, n_sectors, offsets):
-    # Quantify drusen
-    if not oct_obj.Distance:
-        distances = []
-        for i, b in enumerate(oct_obj[1:]):
-            i = i + 1
-            distances.append(oct_obj[i - 1].StartY - oct_obj[i].StartY)
-        oct_obj.meta["Distance"] = np.mean(distances)
-
-    masks = grid(
-        mask_shape=(oct_obj.SizeXSlo, oct_obj.SizeYSlo),
-        radii=radii,
-        laterality=oct_obj.ScanPosition,
-        n_sectors=n_sectors,
-        offsets=offsets,
-        radii_scale=oct_obj.ScaleXSlo,
-    )
-
-    enface_voxel_size_µm3 = (
-        oct_obj.ScaleXSlo * 1e3 * oct_obj.ScaleYSlo * 1e3 * oct_obj.ScaleZ * 1e3
-    )
-    oct_voxel_size_µm3 = (
-        oct_obj.ScaleX * 1e3 * oct_obj.Distance * 1e3 * oct_obj.ScaleZ * 1e3
-    )
-
-    drusen_enface = oct_obj.drusen_enface
-
-    results = {}
-    for name, mask in masks.items():
-        results[f"{name} [mm³]"] = (
-            (drusen_enface * mask).sum() * enface_voxel_size_µm3 / 1e9
+    else:
+        click.echo(
+            "\nComputed drusen are saved. You can now use the 'quantify', 'plot-enface' and 'plot-bscans' commands"
         )
-
-    results["Total [mm³]"] = drusen_enface.sum() * enface_voxel_size_µm3 / 1e9
-    results["Total [OCT voxels]"] = oct_obj.drusen_projection.sum()
-    results["OCT Voxel Size [µm³]"] = oct_voxel_size_µm3
-
-    results["VisitDate"] = str(oct_obj.VisitDate)
-    results["Laterality"] = oct_obj.ScanPosition
-    results["Visit"] = oct_obj.data_path.parent.name
-    return results
