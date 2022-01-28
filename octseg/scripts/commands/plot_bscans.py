@@ -59,22 +59,26 @@ def plot_bscans(ctx: click.Context, drusen, layers, volumes):
 
     data_readers = {"vol": ep.Oct.from_heyex_vol, "xml": ep.Oct.from_heyex_xml}
     # Read data
-    no_drusen_volumes = []
     for datatype, volumes in volumes.items():
         for path in tqdm(volumes):
             # Load data
             data = data_readers[datatype](path)
-            # Read layers
+            # Load layers and drusen
             layers_filepath = output_path / path.stem / "layers.pkl"
             drusen_filepath = output_path / path.stem / "drusen.pkl"
 
             try:
                 with open(layers_filepath, "rb") as myfile:
                     layer_data = pickle.load(myfile)
+            except FileNotFoundError:
+                logger.warning(f"No layers.pkl found for {path.stem}")
+                continue
+
+            try:
                 with open(drusen_filepath, "rb") as myfile:
                     drusen_data = pickle.load(myfile)
             except FileNotFoundError:
-                no_drusen_volumes.append(path)
+                logger.warning(f"No drusen.pkl found for {path.stem}")
                 continue
 
             for key, val in layer_data.items():

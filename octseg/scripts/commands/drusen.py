@@ -62,10 +62,11 @@ def drusen(ctx: click.Context, drusen_threshold, overwrite):
             data = data_readers[datatype](path)
             # Read layers
             layers_filepath = output_path / path.stem / "layers.pkl"
-            if layers_filepath.is_file():
+            try:
                 with open(layers_filepath, "rb") as myfile:
                     layers = pickle.load(myfile)
-            else:
+            except FileNotFoundError:
+                logger.warning(f"No layers.pkl found for {path.stem}")
                 no_layers_volumes.append(path)
                 continue
 

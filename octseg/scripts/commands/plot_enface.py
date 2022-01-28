@@ -41,41 +41,43 @@ def plot_enface(ctx: click.Context, drusen, bscan_area, bscan_positions):
 
     data_readers = {"vol": ep.Oct.from_heyex_vol, "xml": ep.Oct.from_heyex_xml}
     # Read data
-    no_drusen_volumes = []
-    results = []
     for datatype, volumes in volumes.items():
         for path in tqdm(volumes):
             # Load data
             data = data_readers[datatype](path)
-            # Read layers
+            # Load layers and drusen
             layers_filepath = output_path / path.stem / "layers.pkl"
             drusen_filepath = output_path / path.stem / "drusen.pkl"
 
             try:
                 with open(layers_filepath, "rb") as myfile:
-                    layers_data = pickle.load(myfile)
-                with open(drusen_filepath, "rb") as myfile:
-                    drusen_data = pickle.load(myfile)
-            except FileNotFoundError as e:
-                print(e)
-                no_drusen_volumes.append(path)
+                    layer_data = pickle.load(myfile)
+            except FileNotFoundError:
+                logger.warning(f"No layers.pkl found for {path.stem}")
                 continue
 
-            for key, val in layers_data.items():
+            try:
+                with open(drusen_filepath, "rb") as myfile:
+                    drusen_data = pickle.load(myfile)
+            except FileNotFoundError:
+                logger.warning(f"No drusen.pkl found for {path.stem}")
+                continue
+
+            for key, val in layer_data.items():
                 for i, bscan in enumerate(data):
                     heights = val[-(i + 1)]
                     bscan.layers[key] = heights
             data._drusen = drusen_data
 
-            output_path = output_path / "plots" / "enface"
-            output_path.mkdir(parents=True, exist_ok=True)
+            save_path = output_path / "plots" / "enface"
+            save_path.mkdir(parents=True, exist_ok=True)
 
             if not bscan_positions:
                 bscan_positions = None
             data.plot(
                 drusen=drusen, bscan_region=bscan_area, bscan_positions=bscan_positions
             )
-            plt.savefig(output_path / f"{path.stem}.jpeg", bbox_inches="tight", dpi=200)
+            plt.savefig(save_path / f"{path.stem}.jpeg", bbox_inches="tight", dpi=200)
             plt.close()
 
     click.echo("\nDrusen enface plots are saved.")
