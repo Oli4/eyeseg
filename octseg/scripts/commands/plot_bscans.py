@@ -66,8 +66,9 @@ def plot_bscans(ctx: click.Context, drusen, layers, volumes):
             # Load data
             data = data_readers[datatype](path)
             # Load layers and drusen
-            layers_filepath = output_path / path.stem / "layers.pkl"
-            drusen_filepath = output_path / path.stem / "drusen.pkl"
+            output_dir = output_path / path.relative_to(input_path).parent / path.stem
+            layers_filepath = output_dir / "layers.pkl"
+            drusen_filepath = output_dir / "drusen.pkl"
 
             try:
                 with open(layers_filepath, "rb") as myfile:
@@ -89,7 +90,13 @@ def plot_bscans(ctx: click.Context, drusen, layers, volumes):
                     bscan.layers[key] = heights
             data._drusen = drusen_data
 
-            save_path = output_path / "plots" / "bscans" / path.stem
+            save_path = (
+                output_path
+                / "plots"
+                / "bscans"
+                / path.relative_to(input_path).parent
+                / path.stem
+            )
             save_path.mkdir(parents=True, exist_ok=True)
             for bscan in tqdm(data):
                 bscan.plot(drusen=drusen, layers=layers)

@@ -85,7 +85,7 @@ def layers(ctx: click.Context, model_id, overwrite, gpu):
             # Predict layers
             data = get_layers(data, model_id)
             # Save predicted layers
-            output_dir = output_path / path.stem
+            output_dir = output_path / path.relative_to(input_path).parent / path.stem
             output_dir.mkdir(parents=True, exist_ok=True)
             with open(output_dir / ("layers.pkl"), "wb") as myfile:
                 pickle.dump(data.layers, myfile)

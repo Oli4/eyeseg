@@ -46,8 +46,9 @@ def plot_enface(ctx: click.Context, drusen, bscan_area, bscan_positions):
             # Load data
             data = data_readers[datatype](path)
             # Load layers and drusen
-            layers_filepath = output_path / path.stem / "layers.pkl"
-            drusen_filepath = output_path / path.stem / "drusen.pkl"
+            output_dir = output_path / path.relative_to(input_path).parent / path.stem
+            layers_filepath = output_dir / "layers.pkl"
+            drusen_filepath = output_dir / "drusen.pkl"
 
             try:
                 with open(layers_filepath, "rb") as myfile:
@@ -69,7 +70,13 @@ def plot_enface(ctx: click.Context, drusen, bscan_area, bscan_positions):
                     bscan.layers[key] = heights
             data._drusen = drusen_data
 
-            save_path = output_path / "plots" / "enface"
+            save_path = (
+                output_path
+                / "plots"
+                / "enface"
+                / path.relative_to(input_path).parent
+                / path.stem
+            )
             save_path.mkdir(parents=True, exist_ok=True)
 
             if not bscan_positions:

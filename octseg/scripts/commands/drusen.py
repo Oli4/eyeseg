@@ -61,7 +61,8 @@ def drusen(ctx: click.Context, drusen_threshold, overwrite):
             # Load data
             data = data_readers[datatype](path)
             # Read layers
-            layers_filepath = output_path / path.stem / "layers.pkl"
+            output_dir = output_path / path.relative_to(input_path).parent / path.stem
+            layers_filepath = output_dir / "layers.pkl"
             try:
                 with open(layers_filepath, "rb") as myfile:
                     layers = pickle.load(myfile)
@@ -78,7 +79,8 @@ def drusen(ctx: click.Context, drusen_threshold, overwrite):
             # Compute drusen
             drusen = drusen2d(data.layers["RPE"], data.layers["BM"], data.shape)
             clean_drusen = filter_by_height(drusen, minimum_height=drusen_threshold)
-            drusen_filepath = output_path / path.stem / "drusen.pkl"
+            output_dir = output_path / path.relative_to(input_path).parent / path.stem
+            drusen_filepath = output_dir / "drusen.pkl"
             with open(drusen_filepath, "wb") as myfile:
                 pickle.dump(clean_drusen, myfile)
 

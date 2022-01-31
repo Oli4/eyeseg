@@ -64,8 +64,9 @@ def quantify(ctx: click.Context, radii, sectors, offsets):
             # Load data
             data = data_readers[datatype](path)
             # Read layers
-            layers_filepath = output_path / path.stem / "layers.pkl"
-            drusen_filepath = output_path / path.stem / "drusen.pkl"
+            output_dir = output_path / path.relative_to(input_path).parent / path.stem
+            layers_filepath = output_dir / "layers.pkl"
+            drusen_filepath = output_dir / "drusen.pkl"
 
             try:
                 with open(layers_filepath, "rb") as myfile:
