@@ -45,8 +45,13 @@ def plot_bscans(ctx: click.Context, drusen, layers, volumes):
 
     available_volumes = find_volumes(input_path)
     if len(volumes) != 0:
+        # Select volume path if any folder in the volumes path is in the folders specified by volumes
         new_volumes = {
-            k: [v for v in volums if v.name in volumes]
+            k: [
+                v
+                for v in volums
+                if not set(v.relative_to(input_path).parts).isdisjoint(set(volumes))
+            ]
             for k, volums in available_volumes.items()
         }
         click.echo(
