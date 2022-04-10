@@ -6,14 +6,13 @@ authors = ["Olivier Morelle <oli4morelle@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.10"
-click = "^8.0.3"
-eyepie = "==0.3.7"
+click = "^8.1.2"
+eyepie = "^0.6.3"
 tqdm = "^4.62.3"
 PyYAML = "^6.0"
 tensorflow = "^2.7.0"
 tensorflow-addons = "^0.15.0"
 tensorflow-probability = "^0.15.0"
-scikit-image = "0.18.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
