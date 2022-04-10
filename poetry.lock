@@ -90,11 +90,11 @@ unicode_backport = ["unicodedata2"]
 
 [[package]]
 name = "click"
-version = "8.0.3"
+version = "8.1.2"
 description = "Composable command line interface toolkit"
 category = "main"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 
 [package.dependencies]
 colorama = {version = "*", markers = "platform_system == \"Windows\""}
@@ -1198,8 +1198,8 @@ charset-normalizer = [
     {file = "charset_normalizer-2.0.11-py3-none-any.whl", hash = "sha256:2842d8f5e82a1f6aa437380934d5e1cd4fcf2003b06fed6940769c164a480a45"},
 ]
 click = [
-    {file = "click-8.0.3-py3-none-any.whl", hash = "sha256:353f466495adaeb40b6b5f592f9f91cb22372351c84caeb068132442a4518ef3"},
-    {file = "click-8.0.3.tar.gz", hash = "sha256:410e932b050f5eed773c4cda94de75971c89cdb3155a72a0831139a79e5ecb5b"},
+    {file = "click-8.1.2-py3-none-any.whl", hash = "sha256:24e1a4a9ec5bf6299411369b208c1df2188d9eb8d916302fe6bf03faed227f1e"},
+    {file = "click-8.1.2.tar.gz", hash = "sha256:479707fe14d9ec9a0757618b7a100a0ae4c4e236fac5b7f80ca68028141a1a72"},
 ]
 cloudpickle = [
     {file = "cloudpickle-2.0.0-py3-none-any.whl", hash = "sha256:6b2df9741d06f43839a3275c4e6632f7df6487a1f181f5f46a052d3c917c3d11"},
@@ -1460,8 +1460,10 @@ libclang = [
     {file = "libclang-13.0.0-py2.py3-none-macosx_11_0_arm64.whl", hash = "sha256:069407eac2e20ea8f18212d28c6598db31014e7b8a77febc92e762ec133c3226"},
     {file = "libclang-13.0.0-py2.py3-none-manylinux1_x86_64.whl", hash = "sha256:9c1e623340ccafe3a10a2abbc90f59593ff29f0c854f4ddb65b6220d9d998fb4"},
     {file = "libclang-13.0.0-py2.py3-none-manylinux2014_aarch64.whl", hash = "sha256:b7de34393ed46c6cf7b22178d0d43cec2f2dab2f5f95450520a47fc1cf2df5ac"},
+    {file = "libclang-13.0.0-py2.py3-none-manylinux2014_armv7l.whl", hash = "sha256:dfcdfc90eeb5d14f291e31c19b195fbcc29a8c0b2bd29fa331011f9536937a89"},
     {file = "libclang-13.0.0-py2.py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:dcc7ecd83d91e23e95315d7aa6355ee8d45b43742ca1fb642583e0b2f935d50e"},
     {file = "libclang-13.0.0-py2.py3-none-win_amd64.whl", hash = "sha256:b61dedc1b941f43acca1fa15df0a6669c6c3983197c6f3226ae03a766281dd37"},
+    {file = "libclang-13.0.0-py2.py3-none-win_arm64.whl", hash = "sha256:b0acfcfbd1f6d411f654cf6ec4f09cecf0f80b3480e4c9f834d1dcb1f8bd6907"},
 ]
 markdown = [
     {file = "Markdown-3.3.6-py3-none-any.whl", hash = "sha256:9923332318f843411e9932237530df53162e29dc7a4e2b91e35764583c46c9a3"},

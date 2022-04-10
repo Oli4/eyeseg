@@ -136,8 +136,9 @@ def quantify_drusen(oct_obj, radii, n_sectors, offsets):
     results["Total [mm³]"] = drusen_enface.sum() * enface_voxel_size_µm3 / 1e9
     results["Total [OCT voxels]"] = oct_obj.drusen_projection.sum()
     results["OCT Voxel Size [µm³]"] = oct_voxel_size_µm3
+    results["n_Bscans"] = len(oct_obj)
 
     results["VisitDate"] = str(oct_obj.VisitDate)
     results["Laterality"] = oct_obj.ScanPosition
-    results["Visit"] = oct_obj.data_path.parent.name
+    results["Visit"] = oct_obj.data_path.parent.parent.name
     return results
