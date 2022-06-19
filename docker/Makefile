@@ -19,15 +19,13 @@ endif
 
 # Copy all code and models to build a production image
 build_gpu:
-	DOCKER_BUILDKIT=1 docker build -t medvisbonn/octseg:0.1-gpu -f Dockerfile --target gpu ../
+	DOCKER_BUILDKIT=1 docker build -t medvisbonn/eyeseg:0.2-gpu -f Dockerfile --target gpu ../
 
 build_cpu:
-	DOCKER_BUILDKIT=1 docker build -t medvisbonn/octseg:0.1-cpu -f Dockerfile --target cpu ../
+	DOCKER_BUILDKIT=1 docker build -t medvisbonn/eyeseg:0.2-cpu -f Dockerfile --target cpu ../
 
 build_all: build_gpu build_cpu
 
 
 bash:
-	docker run $(USER) -it $(GPUFLAG) -v $(DATA):/home/data medvisbonn/octseg:0.1-$(COMPUTETAG)
-
-docker run -u $(id -u):$(id -g) -v YOUR_DATA_PATH:/home/data -it medvisbonn/octseg:0.1-cpu
+	docker run $(USER) -it $(GPUFLAG) -v $(DATA):/home/data medvisbonn/eyeseg:0.2-$(COMPUTETAG)

@@ -1,4 +1,4 @@
-from octseg import __version__
+from eyeseg import __version__
 
 
 def test_version():

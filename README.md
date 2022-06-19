@@ -1,53 +1,61 @@
-# octseg
-octseg is a command line application to segment OCT layers and quantify drusen. It can read and process Spectralis XML and VOL exports and models used for OCT layer segmentation might give unexpected results on data from other devices than Spectralis.
+# eyeseg
+eyeseg is a command line application to segment OCT layers and quantify drusen. It can read and process Spectralis XML and VOL exports and models used for OCT layer segmentation might give unexpected results on data from other devices than Spectralis.
 
 ## Installation
-You can install octseg using `pip`.
+You can install eyeseg using `pip`.
 
 ```shell
-pip install octseg
+pip install eyeseg
 ```
 
 ## Requirements
 Your data has to be in the Spectralis XML or VOL export format. In case of the XML export, make sure that your data is exported with a black background and every folder contains a single volume (single XML file).
 
 ## Usage
-This package ships a single application called `octseg`. You can run this application without any arguments to see a help message.
+This package ships a single application called `eyeseg`. You can run this application without any arguments to see a help message.
 
 ### Check your data for common problems
 
 To check mounted data for common problems such as inverted contrast and multiple exports per directory run
 
 ```shell
-octseg -i /home/data check
+eyeseg -i /home/data check
 ```
 
+### Train a new model
+
+To train a new model, you first need to create a data split for your data. Then you can run the train script on your data split.
+
+#### Preprocess your data
+
+#### Train and evaluate
+
 ### Segment OCT layers
-To segment layers use the `octseg layers` command. See examples below:
+To segment layers use the `eyeseg layers` command. See examples below:
 
 + Predict layers for volumes located in the current folder and write layers to ./processed
     ```shell
-    octseg layers
+    eyeseg layers
     ```
 
 + Predict layers for volumes located in /path/to/data and write layers to /path/to/processed.
     ```shell
-    octseg -i /path/to/data -o /path/to/processed layers
+    eyeseg -i /path/to/data -o /path/to/processed layers
     ```
 
 ### Compute Drusen
-To compute drusen use the `octseg drusen` command. Make sure the output path is the same as you used for the `octseg layers` command.
+To compute drusen use the `eyeseg drusen` command. Make sure the output path is the same as you used for the `eyeseg layers` command.
 
 + Compute drusen for volumes located in the current folder and layers saved in ./processed. Here a default drusen threshold of 2 is used for filtering drusen.
     ```shell
-    octseg drusen
+    eyeseg drusen
     ```
 
 ### Quantify Drusen
-To quantify drusen use the `octseg quantify` command. Make sure the output path is the same as you used for the `octseg drusen` command. Results are saved in a file `drusen_results.csv` under the output path. See an example below:
+To quantify drusen use the `eyeseg quantify` command. Make sure the output path is the same as you used for the `eyeseg drusen` command. Results are saved in a file `drusen_results.csv` under the output path. See an example below:
 + Quantify drusen for volumes located in the current folder and drusen saved in ./processed. The options in this example command specify the default quantification grid.
     ```shell
-    octseg quantify -r 0.8 -r 1.8 -s 1 -s 4 -o 0 -o 45
+    eyeseg quantify -r 0.8 -r 1.8 -s 1 -s 4 -o 0 -o 45
     ```
 
 #### The quantification grid
@@ -69,17 +77,17 @@ By default the first sector starts on the nasal side from the horizontal line an
 ![](./docs/grid2.jpeg)
 
 ### Plot enface overviews
-To plot enface overviews with an overlay of the computed drusen use the 'octseg plot-enface' command. Make sure the output path is the same as you used for the `octseg drusen` command.
+To plot enface overviews with an overlay of the computed drusen use the 'eyeseg plot-enface' command. Make sure the output path is the same as you used for the `eyeseg drusen` command.
 + Plot the localizer image with drusen overlay and the B-scan area and positions indicated.
     ```shell
-    octseg plot-enface --drusen --bscan-area --bscan-position
+    eyeseg plot-enface --drusen --bscan-area --bscan-position
     ```
 
 ### Plot B-scans
-To plot bscans with an overlay of the computed drusen and predicted layers use the 'octseg plot-bscans' command. Make sure the output path is the same as you used for the `octseg drusen` command.
+To plot bscans with an overlay of the computed drusen and predicted layers use the 'eyeseg plot-bscans' command. Make sure the output path is the same as you used for the `eyeseg drusen` command.
 + Plot bscans for the volumes indicated by the -v option. Without this option B-scans for all available volumes are plotted. If you want to plot predicted layers specify them with the -l option. By default no layers are plotted.
     ```shell
-    octseg plot-bscans --drusen -l BM -l RPE -v volume_name -v volume_name2
+    eyeseg plot-bscans --drusen -l BM -l RPE -v volume_name -v volume_name2
     ```
 
 ## Development
@@ -115,7 +123,7 @@ Version bumping and publishing to PyPI is done automatically via Github Actions,
 
 
 ### Build a docker image
-To build a docker image from the current code and export it to a archive run
+To build a docker image from the current code and export it to an archive run
 
 ```shell
 bash ./scripts/make_docker_image.sh
@@ -124,13 +132,13 @@ bash ./scripts/make_docker_image.sh
 The image can be loaded from the archive with
 
 ```shell
-docker load -i docker_octseg-VERSION-gpu.tar.gz
+docker load -i docker_eyeseg-VERSION-gpu.tar.gz
 ```
 
 To use the image you need to start a container from the image, having the data mounted you want to process.
 
 ```shell
-docker run -u $(id -u):$(id -g) --gpus=all -v YOUR_DATA_PATH:/home/data -it medvisbonn/octseg:VERSION-gpu
+docker run -u $(id -u):$(id -g) --gpus=all -v YOUR_DATA_PATH:/home/data -it medvisbonn/eyeseg:VERSION-gpu
 ```
 
 ### Remarks for using the docker image
