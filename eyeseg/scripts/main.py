@@ -1,4 +1,5 @@
 import click
+import os
 from pathlib import Path
 from eyeseg.scripts.commands.check import check
 from eyeseg.scripts.commands.layers import layers
@@ -9,6 +10,7 @@ from eyeseg.scripts.commands.plot_bscans import plot_bscans
 
 from eyeseg.scripts.commands.train import train
 from eyeseg.scripts.commands.evaluate import evaluate
+from eyeseg.scripts.commands.plot_data import plot_data
 
 
 import logging
@@ -71,6 +73,7 @@ def main(ctx, input_path, output_path, log_level, gpu):
     else:
         output_path = Path(output_path)
     output_path.mkdir(parents=True, exist_ok=True)
+    os.environ["WANDB_DIR"] = str(output_path)
 
     fh = logging.FileHandler(output_path / "eyeseg.log")
     fh.setLevel("DEBUG")
@@ -107,3 +110,4 @@ main.add_command(plot_bscans)
 
 main.add_command(train)
 main.add_command(evaluate)
+main.add_command(plot_data)

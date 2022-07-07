@@ -6,6 +6,7 @@ from tqdm import tqdm
 from scipy import ndimage
 
 import eyepy as ep
+from eyeseg.io_utils.metrics import get_mae, get_layer_mae, get_curv, get_layer_curv
 
 DATA_PATH = Path("/home/data")
 
@@ -15,6 +16,18 @@ def _bytes_feature(value):
     if isinstance(value, type(tf.constant(0))):
         value = value.numpy()  # BytesList won't unpack a string from an EagerTensor.
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+
+
+def get_metrics(layer_mapping):
+    mae = [
+        get_mae(),
+    ] + [get_layer_mae(i, name) for i, name in layer_mapping.items()]
+    curv_mae = [
+        get_curv(),
+    ] + [get_layer_curv(i, name) for i, name in layer_mapping.items()]
+
+    metrics = {"layer_output": mae + curv_mae}
+    return metrics
 
 
 def preprocess_split(volume_paths, savepath, split, excluded=None):

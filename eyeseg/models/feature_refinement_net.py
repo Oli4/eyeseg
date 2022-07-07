@@ -2,24 +2,27 @@ from tensorflow.keras import layers
 from tensorflow.keras.models import Model
 import tensorflow as tf
 
+from typing import Tuple
+
 from eyeseg.models.parts import get_dilation_convblock, get_output
 
 
 def model(
-    input_shape=(256, 256, 1),
-    num_classes=2,
-    filters=64,
-    kernel_size=(3, 3),
-    kernel_initializer="he_uniform",
-    activation="swish",
-    normalization="batch_norm",
-    dropout=0.1,
-    spatial_dropout=0.1,
-    guaranteed_order=True,
-    self_attention=True,
-    residual_learning=True,
-    norm_last=True,
-):
+    input_shape: Tuple = (256, 256, 1),
+    num_classes: int = 2,
+    filters: int = 64,
+    kernel_size: Tuple = (3, 3),
+    kernel_initializer: str = "he_uniform",
+    activation: str = "swish",
+    normalization: str = "batch_norm",
+    dropout: float = 0.1,
+    spatial_dropout: float = 0.1,
+    guaranteed_order: bool = True,
+    self_attention: bool = True,
+    residual_learning: bool = True,
+    norm_last: bool = True,
+    soft_layerhead=False,
+) -> Model:
     def clip_norm():
         def clip_norm_func(input):
             return tf.keras.backend.clip(input, -100, 100)
@@ -73,7 +76,7 @@ def model(
     ]
     inputs = layers.Input(input_shape)
     x = inputs
-    for i in [16, 32, 64]:
+    for i in [filters // 4, filters // 2, filters]:
         conv = layers.Conv2D(
             i,
             (3, 3),
@@ -122,7 +125,11 @@ def model(
     else:
         outputs = x
     output = get_output(
-        outputs, num_classes, input_shape, guaranteed_order=guaranteed_order
+        outputs,
+        num_classes,
+        input_shape,
+        guaranteed_order=guaranteed_order,
+        soft=soft_layerhead,
     )
 
     output = layers.Reshape((input_shape[1], num_classes), name="layer_output")(output)

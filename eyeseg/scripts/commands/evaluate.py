@@ -1,90 +1,88 @@
+import os
 import click
 import logging
+import yaml
+import wandb
 
-from importlib import resources
-
-from eyeseg.models import weights as weights_resources
-from eyeseg.models.utils import load_model
-from eyeseg.scripts.utils import find_volumes
-
-from tqdm import tqdm
-import numpy as np
-import eyepy as ep
-import pickle
+from eyeseg.models.feature_refinement_net import model
+from eyeseg.io_utils.losses import MovingMeanFocalSSE
+from eyeseg.io_utils.input_pipe import get_split
+from eyeseg.io_utils.utils import get_metrics
 
 logger = logging.getLogger("eyeseg.evaluate")
 
 
 @click.command()
-@click.argument("model_id", type=click.STRING, default="2c41ukad")
+@click.option(
+    "-r",
+    "--run-path",
+    type=click.Path(exists=True),
+    help="Path to folder with model configuration and network weights. (config.yaml; model-best.h5)",
+)
+@click.option(
+    "-s",
+    "--input-shape",
+    nargs=2,
+    type=int,
+    help="Shape of the data.",
+)
+@click.option("-b", "--batch_size", type=int, help="Batch size used during training")
 @click.pass_context
-def evaluate(ctx: click.Context, model_id, overwrite, gpu):
-    """Evaluate model"""
+def evaluate(
+    ctx: click.Context,
+    run_path,
+    input_shape,
+    batch_size,
+):
+    """Evaluate a model on a test dataset"""
     input_path = ctx.obj["input_path"]
     output_path = ctx.obj["output_path"]
 
-    # Check if specified model is available
-    if not model_id in list(resources.contents(weights_resources)):
-        msg = f"A model with ID {model_id} is not available. Check 'eyeseg layers --help' for available models."
-        logger.error(msg)
-        raise ValueError(msg)
+    # weights_file = wandb.restore('model-best.h5', run_path=run_path)
+    # model_config = wandb.restore('model_config.yaml', run_path=run_path)
+
+    ######## Temporary
+    weights_file = str(output_path / "model-best.h5")
+    model_config = str(output_path / "model_config.yaml")
+
+    # load config file if provided
+    with open(model_config, "r") as myfile:
+        config = yaml.full_load(myfile)
+
+    ########
+
+    if input_shape is None:
+        input_shape = config["training"]["input_shape"]
+    if batch_size is None:
+        batch_size = config["training"]["batch_size"]
 
     # Find volumes
-    volumes = find_volumes(input_path)
+    test_data = get_split(
+        input_path,
+        config["layer_mapping"],
+        input_shape,
+        batch_size,
+        1,
+        "test",
+    )
+    metrics = get_metrics(config["layer_mapping"])
 
-    # Check for which volumes layers need to be predicted
-    if overwrite is False and output_path.is_dir():
-        # Remove path from volumes if layers are found in the output location
-        precomputed_layers = [
-            p.name for p in output_path.iterdir() if (p / "layers.pkl").exists()
-        ]
-        for datatype in volumes.keys():
-            volumes[datatype] = [
-                v for v in volumes[datatype] if v.name not in precomputed_layers
-            ]
+    my_model = model(
+        input_shape=input_shape + (1,),
+        num_classes=len(config["layer_mapping"]),
+        **config["parameters"],
+    )
+    my_model.load_weights(weights_file)
 
-    data_readers = {"vol": ep.import_heyex_vol, "xml": ep.import_heyex_xml}
-    # Predict layers and save
-    for datatype, volumes in volumes.items():
-        for path in tqdm(
-            volumes,
-            desc="Volumes: ",
-        ):
-            # Load data
-            data = data_readers[datatype](path)
+    loss_fn = MovingMeanFocalSSE(
+        window_size=config["training"]["boosting_window_size"],
+        curv_weight=config["training"]["curv_weight"],
+    )
+    my_model.compile(
+        loss={"layer_output": loss_fn},
+        metrics=metrics,
+        sample_weight_mode="temporal",
+    )
 
-            # Predict layers
-            data = get_layers(data, model_id)
-            # Save predicted layers
-            output_dir = output_path / path.relative_to(input_path).parent / path.name
-            output_dir.mkdir(parents=True, exist_ok=True)
-            with open(output_dir / ("layers.pkl"), "wb") as myfile:
-                pickle.dump(
-                    {name: data.data for name, data in data.layers.items()}, myfile
-                )
-
-    click.echo("\nPredicted OCT layers are saved. You can now use the 'drusen' command")
-
-
-def get_layers(data, model_id):
-    layer_model, model_config = load_model(model_id, (512, data[0].shape[1], 1))
-    results = []
-    for bscan in tqdm(data, desc=f"Predict '{data.meta['visit_date']}': "):
-        img = preprocess_standard(bscan.data, bscan.shape[1])
-        prediction = layer_model.predict(img)[0]
-        results.append(prediction)
-
-    results = np.flip(np.stack(results, axis=0), axis=0)
-    for index, name in model_config["layer_mapping"].items():
-        height_map = results[..., index]
-        data.add_layer_annotation(height_map, name=name)
-    return data
-
-
-def preprocess_standard(data, input_width):
-    image = np.zeros((512, input_width))
-    image[:496, :input_width] = data
-    image = image - np.mean(image)
-    image = image / np.std(image)
-    image = np.reshape(image, (1, 512, input_width, 1))
-    return image
+    results = my_model.evaluate(test_data, batch_size=batch_size, return_dict=True)
+    print(results)

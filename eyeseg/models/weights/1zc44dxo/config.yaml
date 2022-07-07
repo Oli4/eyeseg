@@ -8,4 +8,4 @@ parameters:
   filters: 64
   activation: "swish"
   dropout: 0.1
-  sp_dropout: 0.1
+  spatial_dropout: 0.1

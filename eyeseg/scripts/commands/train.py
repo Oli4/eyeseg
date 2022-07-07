@@ -15,7 +15,8 @@ from eyeseg.io_utils.input_pipe import (
     _prepare_train,
 )
 from eyeseg.io_utils.losses import MovingMeanFocalSSE
-from eyeseg.io_utils.metrics import get_mae, get_curv, get_layer_curv, get_layer_mae
+from eyeseg.io_utils.input_pipe import get_split, count_samples
+from eyeseg.io_utils.utils import get_metrics
 
 import tensorflow as tf
 
@@ -26,7 +27,8 @@ logger = logging.getLogger("eyeseg.train")
 @click.option(
     "-c",
     "--model-config",
-    default=None,
+    type=click.Path(exists=True),
+    default="./config.yaml",
     help="Path to to model configuration as yaml file. If not provided a new file is generated from the provided arguments.",
 )
 @click.option(
@@ -50,7 +52,6 @@ logger = logging.getLogger("eyeseg.train")
 )
 @click.option("-d", "--dropout", type=float, help="Dropout ratio used by the model")
 @click.option(
-    "-sp",
     "--spatial-dropout",
     type=float,
     help="Spatial dropout ratio used by the model",
@@ -62,20 +63,17 @@ logger = logging.getLogger("eyeseg.train")
     multiple=True,
     help="Layer Mapping, index, name pair for proper naming of metrics",
 )
-@click.option(
-    "-b", "--batch_size", type=int, default=2, help="Batch size used during training"
-)
+@click.option("-b", "--batch_size", type=int, help="Batch size used during training")
 @click.option(
     "-e",
     "--epochs",
     type=int,
-    default=100,
     help="Number of epochs for the model to train",
 )
-@click.option("-lr", "--lr", type=float, help="Learning rate")
-@click.option("-ld", "--lr-decay", type=float, help="Exponential learning rate decay")
+@click.option("--lr", type=float, help="Learning rate")
+@click.option("--lr-decay", type=float, help="Exponential learning rate decay")
 @click.option(
-    "-vf", "--validation-frequency", type=int, help="Exponential learning rate decay"
+    "--validation-frequency", type=int, help="Exponential learning rate decay"
 )
 @click.option(
     "--train-size",
@@ -88,13 +86,11 @@ logger = logging.getLogger("eyeseg.train")
     help="Number of validation samples in the dataset. If not provided, samples are counted",
 )
 @click.option(
-    "-bws",
     "--boosting-window-size",
     type=int,
     help="Size of running window used for boosting. Boosting focuses the learning on errors greater than the exponential moving MAE",
 )
 @click.option(
-    "-cw",
     "--curv-weight",
     type=float,
     help="Loss weighting for an additional loss term computed from the second derivative of the layer heights.",
@@ -186,7 +182,10 @@ def train(
         pass
     else:
         config["training"]["train_size"] = count_samples(
-            input_path, "train", config["layer_mapping"], input_shape
+            input_path,
+            "train",
+            config["layer_mapping"],
+            config["training"]["input_shape"],
         )
 
     if val_size:
@@ -195,17 +194,16 @@ def train(
         pass
     else:
         config["training"]["val_size"] = count_samples(
-            input_path, "val", config["layer_mapping"], input_shape
+            input_path,
+            "val",
+            config["layer_mapping"],
+            config["training"]["input_shape"],
         )
 
     if batch_size:
         config["training"]["batch_size"] = batch_size
     if epochs:
         config["training"]["epochs"] = epochs
-
-    # save config file
-    with open(output_path / "config.yaml", "w") as outfile:
-        yaml.dump(config, outfile)
 
     # Find volumes
     train_data = get_split(
@@ -215,6 +213,8 @@ def train(
         config["training"]["batch_size"],
         config["training"]["epochs"],
         "train",
+        config["training"]["transform_parameters"],
+        config["training"]["augment_parameters"],
     )
     val_data = get_split(
         input_path,
@@ -233,29 +233,20 @@ def train(
         **config["parameters"],
     )
 
-    os.environ["WANDB_API_KEY"] = config["wandb"]["apikey"]
-    os.environ["WANDB_DIR"] = str(output_path)
     wandb_config = dict(
-        input_shape=config["training"]["input_shape"],
-        batch_size=config["training"]["batch_size"],
-        epochs=config["training"]["epochs"],
+        training_parameters=config["training"],
+        model_config=config["parameters"],
         num_classes=len(config["layer_mapping"]),
-        filters=config["parameters"]["filters"],
-        boosting_window_size=config["training"]["boosting_window_size"],
-        learning_rate=config["training"]["lr"],
-        lr_decay=config["training"]["lr_decay"],
-        curv_weight=config["training"]["curv_weight"],
-        order_guarantee=True,
-        activation=config["parameters"]["activation"],
-        dropout=config["parameters"]["dropout"],
-        sp_dropout=config["parameters"]["spatial_dropout"],
-        model_parameters=my_model.count_params(),
+        n_model_parameters=my_model.count_params(),
         model="feature_refinement_net",
     )
 
     run = wandb.init(
         project=config["wandb"]["project_name"], config=wandb_config, reinit=False
     )
+    # save config file
+    with open(str(Path(wandb.run.dir) / "model_config.yaml"), "w") as outfile:
+        yaml.dump(config, outfile)
 
     def scheduler(epoch, lr):
         return lr * tf.math.exp(config["training"]["lr_decay"])
@@ -300,82 +291,3 @@ def train(
         ),  # len(val_filepaths) // BATCH_SIZE,
         callbacks=callbacks,
     )
-
-
-def get_split(path, layer_mapping, input_shape, batch_size, epochs, split, seed=42):
-    _transform = get_transform_func_combined(
-        translation=[-90, 90],
-        scale=[0.95, 1.05],
-        rotation=(-0, 0),
-        num_classes=len(layer_mapping),
-    )
-    _augment = get_augment_function(
-        contrast_range=(0.9, 1.1),
-        brightnesdelta=0.1,
-        augment_probability=1,
-        occlusion=False,
-    )
-    _parse_image_function = get_parse_function(layer_mapping, input_shape)
-
-    if split not in ["train", "val", "test"]:
-        raise ValueError("The 'split' parameters has to be one of train, test or val.")
-
-    paths = [str(p) for p in path.glob(f"{split}*")]
-    if paths is []:
-        raise click.UsageError(
-            f"There are no files starting with {split} in the given folder"
-        )
-    raw_data = tf.data.TFRecordDataset(paths, num_parallel_reads=10)
-    parsed_data = raw_data.map(_parse_image_function)
-
-    if split == "train":
-        dataset = (
-            parsed_data.shuffle(
-                14000, seed, reshuffle_each_iteration=True
-            )  # .map(_augment)
-            .map(_transform)
-            .map(_normalize)
-            .batch(batch_size)
-            .map(_prepare_train)
-            .repeat(epochs)
-            .prefetch(tf.data.experimental.AUTOTUNE)
-        )
-    else:
-        dataset = (
-            parsed_data.map(_normalize)
-            .batch(batch_size)
-            .map(_prepare_train)
-            .repeat(epochs)
-            .prefetch(tf.data.experimental.AUTOTUNE)
-        )
-
-    return dataset
-
-
-def count_samples(path, split, layer_mapping, input_shape):
-    _parse_image_function = get_parse_function(
-        mapping=layer_mapping, input_shape=input_shape
-    )
-
-    if split not in ["train", "val", "test"]:
-        raise ValueError("The 'split' parameters has to be one of train, test or val.")
-
-    raw_data = tf.data.TFRecordDataset(
-        [str(p) for p in path.glob(f"{split}*")], num_parallel_reads=10
-    )
-    parsed_data = raw_data.map(_parse_image_function).batch(1)
-
-    count = sum([1 for _ in parsed_data])
-    return count
-
-
-def get_metrics(layer_mapping):
-    mae = [
-        get_mae(),
-    ] + [get_layer_mae(i, name) for i, name in layer_mapping.items()]
-    curv_mae = [
-        get_curv(),
-    ] + [get_layer_curv(i, name) for i, name in layer_mapping.items()]
-
-    metrics = {"layer_output": mae + curv_mae}
-    return metrics

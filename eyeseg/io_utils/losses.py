@@ -35,16 +35,17 @@ class MovingMeanFocalSSE(tf.keras.losses.Loss):
             # Select absolute errors greater than the exponential moving mae
             focal_mask = tf.math.greater(abs_error, self.ema)
 
+            # Further increase the weight of hard to predict regions
             focal_mse = tf.math.reduce_sum(
                 tf.ragged.boolean_mask(squared_error, focal_mask), axis=(1, 2)
             )
+            mse = tf.math.reduce_sum(squared_error, axis=(1, 2))
+            mse = focal_mse + mse
         else:
-            focal_mse = tf.math.reduce_sum(squared_error, axis=(1, 2))
+            mse = tf.math.reduce_sum(squared_error, axis=(1, 2))
 
         # In case the mask contains no values, the mse becomes nan. Change the loss here to 0
-        clean_focal_mse = tf.where(
-            tf.math.is_nan(focal_mse), x=tf.zeros_like(focal_mse), y=focal_mse
-        )
+        clean_focal_mse = tf.where(tf.math.is_nan(mse), x=tf.zeros_like(mse), y=mse)
         if self.curv_weight != 0:
             true_1deriv = y_true[:, 1:, :] - y_true[:, :-1, :]
             pred_1deriv = y_pred[:, 1:, :] - y_pred[:, :-1, :]

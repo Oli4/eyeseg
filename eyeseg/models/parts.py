@@ -158,23 +158,48 @@ def get_msgb(
     return msgb
 
 
-def get_output(input, num_classes, input_shape, guaranteed_order=True):
-    output_top_to_bottom = layers.Conv2D(
-        num_classes, (1, 1), activation="relu", kernel_initializer="he_uniform"
-    )(input)
-    # Every map becomes the
-    if guaranteed_order:
-        output_list_top_to_bottom = [output_top_to_bottom[..., -1]]
-        for i in range(num_classes - 2, -1, -1):
-            output_list_top_to_bottom.insert(
-                0, output_list_top_to_bottom[0] + output_top_to_bottom[..., i]
-            )
-        output_top_to_bottom = tf.stack(output_list_top_to_bottom, axis=-1)
+def get_output(input, num_classes, input_shape, guaranteed_order=True, soft=False):
+    if soft:
+        output_top_to_bottom = tf.keras.layers.Conv2D(
+            num_classes, (1, 1), kernel_initializer="he_uniform"
+        )(input)
 
-    output_top_to_bottom = tf.clip_by_value(output_top_to_bottom, 0, 1)
-    output_top_to_bottom = layers.AveragePooling2D((input_shape[0], 1))(
-        output_top_to_bottom
-    )
-    output_top_to_bottom = tf.math.multiply(output_top_to_bottom, input_shape[0])
+        col_softmax = activations.softmax(output_top_to_bottom, axis=1)
+
+        col_softargmax = tf.reduce_sum(
+            col_softmax
+            * tf.reshape(tf.cast(tf.range(0, input_shape[0]), tf.float32), (-1, 1, 1)),
+            axis=1,
+        )
+
+        if guaranteed_order:
+            output_list_top_to_bottom = [col_softargmax[..., -1]]
+            for i in range(num_classes - 2, -1, -1):
+                output_list_top_to_bottom.insert(
+                    0,
+                    output_list_top_to_bottom[0]
+                    + tf.keras.activations.relu(
+                        col_softargmax[..., i] - output_list_top_to_bottom[0]
+                    ),
+                )
+            output_top_to_bottom = tf.stack(output_list_top_to_bottom, axis=-1)
+    else:
+        output_top_to_bottom = layers.Conv2D(
+            num_classes, (1, 1), activation="relu", kernel_initializer="he_uniform"
+        )(input)
+        # Every map becomes the
+        if guaranteed_order:
+            output_list_top_to_bottom = [output_top_to_bottom[..., -1]]
+            for i in range(num_classes - 2, -1, -1):
+                output_list_top_to_bottom.insert(
+                    0, output_list_top_to_bottom[0] + output_top_to_bottom[..., i]
+                )
+            output_top_to_bottom = tf.stack(output_list_top_to_bottom, axis=-1)
+
+        output_top_to_bottom = tf.clip_by_value(output_top_to_bottom, 0, 1)
+        output_top_to_bottom = layers.AveragePooling2D((input_shape[0], 1))(
+            output_top_to_bottom
+        )
+        output_top_to_bottom = tf.math.multiply(output_top_to_bottom, input_shape[0])
 
     return output_top_to_bottom

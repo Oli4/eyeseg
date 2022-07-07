@@ -1,5 +1,5 @@
 # eyeseg
-eyeseg is a command line application to segment OCT layers and quantify drusen. It can read and process Spectralis XML and VOL exports and models used for OCT layer segmentation might give unexpected results on data from other devices than Spectralis.
+eyeseg is a command line application to segment OCT layers and quantify drusen. It can read and process Spectralis XML and VOL exports. Models used for OCT layer segmentation might give unexpected results on data from other devices than Spectralis.
 
 ## Installation
 You can install eyeseg using `pip`.
@@ -12,7 +12,7 @@ pip install eyeseg
 Your data has to be in the Spectralis XML or VOL export format. In case of the XML export, make sure that your data is exported with a black background and every folder contains a single volume (single XML file).
 
 ## Usage
-This package ships a single application called `eyeseg`. You can run this application without any arguments to see a help message.
+This package ships a single application called `eyeseg`. You can run this application without any arguments to see a help message. While it is possible to simply pip install eyeseg on your machine, it is recommended to use the provided docker image.
 
 ### Check your data for common problems
 
@@ -141,7 +141,7 @@ To use the image you need to start a container from the image, having the data m
 docker run -u $(id -u):$(id -g) --gpus=all -v YOUR_DATA_PATH:/home/data -it medvisbonn/eyeseg:VERSION-gpu
 ```
 
-### Remarks for using the docker image
+### Remarks on using the docker image
 
 + You need `nvidia-docker2` installed for GPU access
 + To make data available in the container you need to mount the respective folder when starting the container
