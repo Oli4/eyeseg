@@ -44,7 +44,7 @@ def preprocess_split(volume_paths, savepath, split, excluded=None):
         # Load volume
         data = ep.Oct.from_duke_mat(p)
         # Compute center of annotation
-        bm_annotation = (~np.isnan(data.layers["BM"])).astype(int)
+        bm_annotation = (~np.isnan(data.analyse["BM"])).astype(int)
         height_center, width_center = [
             int(c) for c in ndimage.measurements.center_of_mass(bm_annotation)
         ]
@@ -61,13 +61,13 @@ def preprocess_split(volume_paths, savepath, split, excluded=None):
                 image = bscan.scan[:, width_center - 256 : width_center + 256].astype(
                     np.uint8
                 )
-                bm = bscan.layers["BM"][width_center - 256 : width_center + 256].astype(
-                    np.float32
-                )
-                rpe = bscan.layers["RPE"][
+                bm = bscan.analyse["BM"][
                     width_center - 256 : width_center + 256
                 ].astype(np.float32)
-                ilm = bscan.layers["ILM"][
+                rpe = bscan.analyse["RPE"][
+                    width_center - 256 : width_center + 256
+                ].astype(np.float32)
+                ilm = bscan.analyse["ILM"][
                     width_center - 256 : width_center + 256
                 ].astype(np.float32)
 

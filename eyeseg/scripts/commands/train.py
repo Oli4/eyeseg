@@ -14,7 +14,7 @@ from eyeseg.io_utils.input_pipe import (
     _normalize,
     _prepare_train,
 )
-from eyeseg.io_utils.losses import MovingMeanFocalSSE
+from eyeseg.io_utils.losses import MovingMeanFocalSSE, layer_ce
 from eyeseg.io_utils.input_pipe import get_split, count_samples
 from eyeseg.io_utils.utils import get_metrics
 
@@ -266,13 +266,17 @@ def train(
         window_size=config["training"]["boosting_window_size"],
         curv_weight=config["training"]["curv_weight"],
     )
+    if config["parameters"]["soft_layerhead"]:
+        losses = {"layer_output": loss_fn, "columnwise_softmax": layer_ce}
+    else:
+        losses = {"layer_output": loss_fn}
     metrics["layer_output"].append(internal_metric(loss_fn, "ema", name="EMA"))
 
     my_model.compile(
         optimizer=tf.keras.optimizers.Adam(
             learning_rate=config["training"]["lr"], clipnorm=1.0, clipvalue=0.5
         ),
-        loss={"layer_output": loss_fn},
+        loss=losses,
         metrics=metrics,
         sample_weight_mode="temporal",
     )

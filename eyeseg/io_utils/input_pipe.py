@@ -18,6 +18,7 @@ def get_parse_function(mapping, input_shape, **extra_features):
         other_features = {
             "volume": tf.io.FixedLenFeature([], tf.string),
             "bscan": tf.io.FixedLenFeature([], tf.string),
+            "layer_positions": tf.io.FixedLenFeature([], tf.string),
             "image": tf.io.FixedLenFeature([], tf.string),
             "group": tf.io.FixedLenFeature([], tf.string),
         }
@@ -32,7 +33,12 @@ def get_parse_function(mapping, input_shape, **extra_features):
         data = tf.io.parse_single_example(input_proto, image_feature_description)
 
         image = tf.io.parse_tensor(data["image"], tf.uint8)
-        image = tf.reshape(image, input_shape + (1,))
+        image = tf.reshape(image, input_shape + (1,), name="reshape_1")
+
+        layer_positions = tf.io.parse_tensor(data["layer_positions"], tf.float32)
+        layer_positions = tf.reshape(
+            layer_positions, input_shape + (len(mapping),), name="reshape_1.5"
+        )
 
         # Sort mapping for guaranteed order
         layerout = tf.stack(
@@ -42,13 +48,16 @@ def get_parse_function(mapping, input_shape, **extra_features):
             ],
             axis=-1,
         )
-        layerout = tf.reshape(layerout, (input_shape[1], len(mapping)))
+        layerout = tf.reshape(
+            layerout, (input_shape[1], len(mapping)), name="reshape_2"
+        )
 
         volume = data["volume"]
         bscan = data["bscan"]
         group = data["group"]
 
         return {
+            "layer_positions": layer_positions,
             "image": image,
             "layerout": layerout,
             "Volume": volume,
@@ -80,7 +89,11 @@ def get_augment_function(
             lambda: image,
         )
 
-        return {"image": image, "layerout": layerout}
+        return {
+            "image": image,
+            "layerout": layerout,
+            "layer_positions": in_data["layer_positions"],
+        }
 
     return _augment
 
@@ -97,14 +110,41 @@ def _normalize(in_data):
     image = tf.cast(image, tf.float32)
     image = image - tf.math.reduce_mean(image)
     image = image / tf.math.reduce_std(image)
-    return {**in_data, **{"image": image, "layerout": layerout}}
+    return {
+        **in_data,
+        **{
+            "image": image,
+            "layerout": layerout,
+            "layer_positions": in_data["layer_positions"],
+        },
+    }
 
 
 @tf.function
 def _prepare_train(in_data):
-    image, layerout = in_data["image"], in_data["layerout"]
+    image, layerout, layer_positions = (
+        in_data["image"],
+        in_data["layerout"],
+        in_data["layer_positions"],
+    )
+
+    return image, {"layer_output": layerout, "columnwise_softmax": layer_positions}
+
+
+@tf.function
+def _prepare_test(in_data):
+    volume, bscan, group, image, layerout = (
+        in_data["Volume"],
+        in_data["Bscan"],
+        in_data["Group"],
+        in_data["image"],
+        in_data["layerout"],
+    )
     return image, {
         "layer_output": layerout,
+        "Volume": volume,
+        "Bscan": bscan,
+        "Group": group,
     }
 
 
@@ -119,6 +159,7 @@ def _prepare_train_layer(layer):
         )
         return image, {
             "layer_output": layerout,
+            "columnwise_softmax": in_data["layer_positions"],
         }
 
     return _prepare_train
@@ -228,13 +269,15 @@ def get_transform_func_combined(
                 tf.linalg.inv(combined_matrix)
             ),
             interpolation="bilinear",
+            output_shape=input_shape,
         )
-        # combined_matrix = tf.linalg.inv(combined_matrix)
 
         # Warp 1D data
         x_vals = (
             tf.tile(
-                tf.reshape(tf.range(0, width, dtype=tf.float32), (1, width)),
+                tf.reshape(
+                    tf.range(0, width, dtype=tf.float32), (1, width), name="reshape_3"
+                ),
                 [num_classes, 1],
             )
             + 0.5
@@ -326,10 +369,18 @@ def get_split(
             parsed_data.shuffle(
                 14000, seed, reshuffle_each_iteration=True
             )  # .map(_augment)
-            .map(_transform)
+            # .map(_transform)
             .map(_normalize)
             .batch(batch_size)
             .map(_prepare_train)
+            .repeat(epochs)
+            .prefetch(tf.data.experimental.AUTOTUNE)
+        )
+    elif split == "test":
+        dataset = (
+            parsed_data.map(_normalize)
+            .batch(batch_size)
+            .map(_prepare_test)
             .repeat(epochs)
             .prefetch(tf.data.experimental.AUTOTUNE)
         )

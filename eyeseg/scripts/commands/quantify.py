@@ -1,16 +1,9 @@
 import click
-from pathlib import Path
 import logging
 
 import eyepy as ep
 from tqdm import tqdm
-import pickle
-import numpy as np
 import pandas as pd
-
-from eyeseg.scripts.utils import find_volumes
-
-# from eyeseg.grids import grid
 
 logger = logging.getLogger("eyeseg.quantify")
 
@@ -53,32 +46,23 @@ def quantify(ctx: click.Context, radii, sectors, offsets):
     input_path = ctx.obj["input_path"]
     output_path = ctx.obj["output_path"]
 
-    volumes = find_volumes(input_path)
+    volumes = [p for p in (input_path / "processed").iterdir() if p.suffix == ".eye"]
 
-    data_readers = {"vol": ep.import_heyex_vol, "xml": ep.import_heyex_xml}
     # Read data
-    no_drusen_volumes = []
     results = []
-    for datatype, volumes in volumes.items():
-        for path in tqdm(volumes):
-            # Load data
-            data = data_readers[datatype](path)
-            # Read layers
-            output_dir = output_path / path.relative_to(input_path).parent / path.name
-            layers_filepath = output_dir / "layers.pkl"
-            drusen_filepath = output_dir / "drusen.pkl"
 
-            try:
-                with open(drusen_filepath, "rb") as myfile:
-                    drusen = pickle.load(myfile)
-            except FileNotFoundError:
-                no_drusen_volumes.append(path)
-                continue
+    for path in tqdm(volumes):
+        # Load data
+        data = ep.EyeVolume.load(path)
 
-            data.add_voxel_annotation(
-                drusen, name="drusen", radii=radii, n_sectors=sectors, offsets=offsets
-            )
-            results.append(data.volume_maps["drusen"].quantification)
+        vm = data.volume_maps["drusen"]
+        vm.radii = radii
+        vm.n_sectors = sectors
+        vm.offsets = offsets
+
+        quant = vm.quantification
+        quant["Visit"] = path.stem
+        results.append(vm.quantification)
 
     # Save quantification results as csv
     if len(results) > 0:
@@ -88,8 +72,3 @@ def quantify(ctx: click.Context, radii, sectors, offsets):
         csv.to_csv(output_path / f"drusen_results.csv")
 
         click.echo(f"Drusen quantification saved for {len(csv)} volumes.")
-
-    if len(no_drusen_volumes) > 0:
-        click.echo(
-            f"No drusen found for {len(no_drusen_volumes)} volumes. To compute drusen run the 'drusen' command after having predicted layers with the 'layers' command."
-        )

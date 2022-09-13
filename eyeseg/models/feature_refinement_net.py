@@ -51,11 +51,7 @@ def model(
 
     # Receptive field 727
     dilations = [
-        [
-            3,
-            9,
-            3,
-        ],
+        [3, 9, 3],
         [9, 27, 9],
         [27, 243, 27],
     ]
@@ -124,14 +120,30 @@ def model(
         outputs = layers.Multiply()([output_features, attention_map])
     else:
         outputs = x
-    output = get_output(
-        outputs,
-        num_classes,
-        input_shape,
-        guaranteed_order=guaranteed_order,
-        soft=soft_layerhead,
-    )
 
-    output = layers.Reshape((input_shape[1], num_classes), name="layer_output")(output)
-    model = Model(inputs=[inputs], outputs=[output])
+    if soft_layerhead:
+        outputs, col_softmax = get_output(
+            outputs,
+            num_classes,
+            input_shape,
+            guaranteed_order=guaranteed_order,
+            soft=soft_layerhead,
+        )
+        output = layers.Reshape((input_shape[1], num_classes), name="layer_output")(
+            outputs
+        )
+        model = Model(inputs=[inputs], outputs=[output, col_softmax])
+    else:
+        outputs, _ = get_output(
+            outputs,
+            num_classes,
+            input_shape,
+            guaranteed_order=guaranteed_order,
+            soft=soft_layerhead,
+        )
+        output = layers.Reshape((input_shape[1], num_classes), name="layer_output")(
+            outputs
+        )
+        model = Model(inputs=[inputs], outputs=[output])
+
     return model

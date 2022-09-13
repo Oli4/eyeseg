@@ -1,8 +1,9 @@
-import os
 import click
 import logging
 import yaml
-import wandb
+import numpy as np
+import pickle
+import matplotlib.pyplot as plt
 
 from eyeseg.models.feature_refinement_net import model
 from eyeseg.io_utils.losses import MovingMeanFocalSSE
@@ -27,12 +28,16 @@ logger = logging.getLogger("eyeseg.evaluate")
     help="Shape of the data.",
 )
 @click.option("-b", "--batch_size", type=int, help="Batch size used during training")
+@click.option(
+    "-p", "--plot", type=bool, default=True, help="Plot test dataset with predictions"
+)
 @click.pass_context
 def evaluate(
     ctx: click.Context,
     run_path,
     input_shape,
     batch_size,
+    plot,
 ):
     """Evaluate a model on a test dataset"""
     input_path = ctx.obj["input_path"]
@@ -61,7 +66,7 @@ def evaluate(
         input_path,
         config["layer_mapping"],
         input_shape,
-        batch_size,
+        1,
         1,
         "test",
     )
@@ -84,5 +89,32 @@ def evaluate(
         sample_weight_mode="temporal",
     )
 
-    results = my_model.evaluate(test_data, batch_size=batch_size, return_dict=True)
-    print(results)
+    results = {}
+    for image, data in test_data:
+        prediction = my_model.predict(image)
+        layerout = data["layer_output"]
+        volume, bscan, group = (
+            bytes.decode(data["Volume"].numpy()[0]),
+            bytes.decode(data["Bscan"].numpy()[0]),
+            bytes.decode(data["Group"].numpy()[0]),
+        )
+
+        results[(volume, bscan, group)] = np.abs(prediction - layerout)
+
+        (output_path / "results").mkdir(parents=True, exist_ok=True)
+        if plot:
+            plt.imshow(image[0, ..., 0], cmap="gray")
+            for layer in range(9):
+                plt.plot(image.shape[1] - prediction[0, ..., layer])
+            plt.savefig(
+                output_path
+                / "results"
+                / f"{np.mean(results[(volume, bscan, group)]):.2f}_{volume}_{bscan}.jpeg"
+            )
+            plt.close()
+
+    with open(output_path / "results" / "test_results.pkl", "wb") as myfile:
+        pickle.dump(results, myfile)
+
+    # results = my_model.evaluate(test_data, batch_size=batch_size, return_dict=True)
+    # print(results)

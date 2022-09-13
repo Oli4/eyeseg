@@ -1,6 +1,41 @@
 import tensorflow as tf
 
 
+def layer_ce(true, pred):
+    # true : batch, columns, channels
+
+    # pred: batch, rows, columns, channels
+    all = tf.math.log(tf.reduce_sum(true * pred, axis=1))
+    mask = tf.logical_not(tf.math.is_inf(all))
+    all_clean = tf.ragged.boolean_mask(all, mask)
+
+    return tf.reduce_sum(-tf.reduce_sum(all_clean, axis=1), axis=-1)
+
+    ctrue = tf.cast(tf.round(true), dtype=tf.int32)
+
+    cols = tf.range(1024, dtype=tf.int32)
+    layers = tf.range(9, dtype=tf.int32)
+
+    batch_losses = []
+    for batch in tf.range(1, dtype=tf.int32):
+        layer_losses = []
+        for layer in layers:
+            layer_results = []
+            for c in cols:
+                row = ctrue[batch, c, layer]
+                # if True: #not tf.math.is_nan(true[batch, c, layer]):
+                value = pred[batch, row, c, layer]
+                layer_results.append(value)
+            layer_losses.append(
+                -tf.reduce_sum(
+                    tf.math.log(tf.cast(tf.stack(layer_results), tf.float32))
+                )
+            )
+        batch_losses.append(tf.reduce_mean(layer_losses))
+
+    return tf.stack(batch_losses)
+
+
 class MovingMeanFocalSSE(tf.keras.losses.Loss):
     # initialize instance attributes
     def __init__(self, window_size, curv_weight=0):

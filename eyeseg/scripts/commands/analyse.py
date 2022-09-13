@@ -3,6 +3,8 @@ import logging
 
 from importlib import resources
 
+import skimage.transform
+
 from eyeseg.models import weights as weights_resources
 from eyeseg.models.utils import load_model
 from eyeseg.scripts.utils import find_volumes
@@ -21,9 +23,16 @@ logger = logging.getLogger("eyeseg.layers")
     default=False,
     help="Whether to overwrite existing layers. Default is --no-overwrite.",
 )
+@click.option(
+    "--drusen_threshold",
+    "-t",
+    type=click.INT,
+    default=2,
+    help="Minimum height for drusen to be included",
+)
 @click.argument("model_id", type=click.STRING, default="2c41ukad")
 @click.pass_context
-def layers(ctx: click.Context, model_id, overwrite):
+def analyse(ctx: click.Context, model_id, overwrite, drusen_threshold):
     """Predict OCT layers
 
     \b
@@ -69,27 +78,47 @@ def layers(ctx: click.Context, model_id, overwrite):
             # Predict layers
             data = get_layers(data, model_id)
             # Save predicted layers
-            output_dir = output_path / path.relative_to(input_path).parent / path.name
+            output_dir = output_path / path.relative_to(input_path).parent
             output_dir.mkdir(parents=True, exist_ok=True)
-            with open(output_dir / ("layers.pkl"), "wb") as myfile:
-                pickle.dump(
-                    {name: data.data for name, data in data.layers.items()}, myfile
-                )
 
-    click.echo("\nPredicted OCT layers are saved. You can now use the 'drusen' command")
+            if "RPE" in data.layers and "BM" in data.layers:
+                drusen = ep.drusen(
+                    data.layers["RPE"],
+                    data.layers["BM"],
+                    data.shape,
+                    minimum_height=drusen_threshold,
+                )
+                data.add_voxel_annotation(drusen, name="drusen")
+
+            data.save(output_dir / (path.name + ".eye"))
+
+    click.echo(
+        "\nComputed layers and drusen are saved. You can now use the 'quantify', 'plot-enface' and 'plot-bscans' commands"
+    )
 
 
 def get_layers(data, model_id):
-    layer_model, model_config = load_model(model_id, (512, data[0].shape[1], 1))
+    if data.meta["scale_x"] < 0.009:
+        factor = 2
+    else:
+        factor = 1
+
+    width = data[0].shape[1]
+    layer_model, model_config = load_model(model_id, (512, width // factor, 1))
     results = []
     for bscan in tqdm(data, desc=f"Predict '{data.meta['visit_date']}': "):
-        img = preprocess_standard(bscan.data, bscan.shape[1])
+        img = skimage.transform.rescale(bscan.data, (1, 1 / factor))
+        img = preprocess_standard(img, width // factor)
         prediction = layer_model.predict(img)[0]
         results.append(prediction)
 
     results = np.flip(np.stack(results, axis=0), axis=0)
     for index, name in model_config["layer_mapping"].items():
-        height_map = results[..., index]
+        if factor != 1:
+            height_map = skimage.transform.rescale(results[..., index], (1, factor))
+            # height_map = np.interp(np.arange(width), np.arange(width//factor) * factor, results[..., index])
+        else:
+            height_map = results[..., index]
         data.add_layer_annotation(height_map, name=name)
     return data
 

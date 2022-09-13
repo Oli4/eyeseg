@@ -13,6 +13,7 @@ logger = logging.getLogger("eyeseg.evaluate")
 @click.option(
     "-c",
     "--model-config",
+    default="./config.yaml",
     type=click.Path(exists=True),
     help="Path to to model configuration as yaml file. If not provided a new file is generated from the provided arguments.",
 )

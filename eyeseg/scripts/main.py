@@ -2,8 +2,7 @@ import click
 import os
 from pathlib import Path
 from eyeseg.scripts.commands.check import check
-from eyeseg.scripts.commands.layers import layers
-from eyeseg.scripts.commands.drusen import drusen
+from eyeseg.scripts.commands.analyse import analyse
 from eyeseg.scripts.commands.quantify import quantify
 from eyeseg.scripts.commands.plot_enface import plot_enface
 from eyeseg.scripts.commands.plot_bscans import plot_bscans
@@ -102,8 +101,7 @@ def main(ctx, input_path, output_path, log_level, gpu):
 
 
 main.add_command(check)
-main.add_command(layers)
-main.add_command(drusen)
+main.add_command(analyse)
 main.add_command(quantify)
 main.add_command(plot_enface)
 main.add_command(plot_bscans)

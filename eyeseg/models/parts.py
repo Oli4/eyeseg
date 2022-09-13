@@ -6,7 +6,7 @@ from tensorflow.keras import activations
 import tensorflow as tf
 
 
-class FRNLayer(keras.layers.Layer):
+class FRNLayer(layers.Layer):
     def __init__(self):
         super(FRNLayer, self).__init__()
 
@@ -27,7 +27,7 @@ class FRNLayer(keras.layers.Layer):
         return x * self.gamma + self.beta
 
 
-class TLU(keras.layers.Layer):
+class TLU(layers.Layer):
     def __init__(self):
         super(TLU, self).__init__()
 
@@ -42,7 +42,7 @@ class TLU(keras.layers.Layer):
         return K.maximum(x, self.tau)
 
 
-class TSwish(keras.layers.Layer):
+class TSwish(layers.Layer):
     def __init__(self):
         super(TSwish, self).__init__()
 
@@ -164,7 +164,9 @@ def get_output(input, num_classes, input_shape, guaranteed_order=True, soft=Fals
             num_classes, (1, 1), kernel_initializer="he_uniform"
         )(input)
 
-        col_softmax = activations.softmax(output_top_to_bottom, axis=1)
+        col_softmax = layers.Softmax(axis=1, name="columnwise_softmax")(
+            output_top_to_bottom
+        )
 
         col_softargmax = tf.reduce_sum(
             col_softmax
@@ -182,7 +184,13 @@ def get_output(input, num_classes, input_shape, guaranteed_order=True, soft=Fals
                         col_softargmax[..., i] - output_list_top_to_bottom[0]
                     ),
                 )
-            output_top_to_bottom = tf.stack(output_list_top_to_bottom, axis=-1)
+            output_top_to_bottom = tf.stack(
+                output_list_top_to_bottom, axis=-1, name="layer_output"
+            )
+
+        # Return the layer heights for L1 loss and the column-wise softmax for CE Loss as in He et al
+        return output_top_to_bottom, col_softmax
+
     else:
         output_top_to_bottom = layers.Conv2D(
             num_classes, (1, 1), activation="relu", kernel_initializer="he_uniform"
@@ -200,6 +208,8 @@ def get_output(input, num_classes, input_shape, guaranteed_order=True, soft=Fals
         output_top_to_bottom = layers.AveragePooling2D((input_shape[0], 1))(
             output_top_to_bottom
         )
-        output_top_to_bottom = tf.math.multiply(output_top_to_bottom, input_shape[0])
+        output_top_to_bottom = tf.math.multiply(
+            output_top_to_bottom, input_shape[0], name="layer_output"
+        )
 
-    return output_top_to_bottom
+        return output_top_to_bottom, False
