@@ -1,10 +1,5 @@
 import click
 import logging
-from eyeseg.scripts.utils import find_volumes
-
-from tqdm import tqdm
-import numpy as np
-import eyepy as ep
 
 logger = logging.getLogger("eyeseg.check")
 logger.setLevel("INFO")
@@ -16,6 +11,10 @@ def check(
     ctx: click.Context,
 ):
     """Check XML exports for common problems"""
+    import eyepy as ep
+    from eyeseg.scripts.utils import find_volumes
+    from tqdm import tqdm
+    import numpy as np
 
     input_path = ctx.obj["input_path"]
 

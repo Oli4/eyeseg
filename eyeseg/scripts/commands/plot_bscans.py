@@ -1,12 +1,5 @@
 import click
-import sys
 import logging
-import eyepy as ep
-from tqdm import tqdm
-import pickle
-import matplotlib.pyplot as plt
-
-from eyeseg.scripts.utils import find_volumes
 
 logger = logging.getLogger("eyeseg.plot_bscans")
 
@@ -32,13 +25,21 @@ def plot_bscans(ctx: click.Context, drusen, layers):
     \f
     :return:
     """
+    # Delay imports for faster CLI
+    import eyepy as ep
+    from tqdm import tqdm
+    import matplotlib.pyplot as plt
+    import numpy as np
+
     input_path = ctx.obj["input_path"]
     output_path = ctx.obj["output_path"]
 
-    volumes = [p for p in (input_path / "processed").iterdir() if p.suffix == ".eye"]
+    volumes = [
+        p for p in (input_path / "processed").iterdir() if p.suffix == ".eye"
+    ]
     if len(volumes) == 0:
-        click.echo("\nNo volumes found.")
-        sys.exit()
+        logger.error(f"No data found in '{input_path}/processed' folder.")
+        raise click.Abort
 
     if drusen:
         areas = ["drusen"]
@@ -50,6 +51,22 @@ def plot_bscans(ctx: click.Context, drusen, layers):
         data = ep.EyeVolume.load(path)
         save_path = output_path / "plots" / "bscans" / path.stem
         save_path.mkdir(parents=True, exist_ok=True)
+
+        #for key in data.layers:
+        #heights = data.layers[key].data
+        #heights_clean = np.full_like(heights, np.nan)
+        #heights_clean[:, 100:-100] = heights[:, 100:-100]
+        #data.layers[key].data = heights_clean
+
+        drusen = ep.drusen(
+            data.layers["RPE"],
+            data.layers["BM"],
+            data.shape,
+            minimum_height=5,
+        )
+        data.delete_voxel_annotations("drusen")
+        data.add_voxel_annotation(drusen, name="drusen")
+
         for bscan in tqdm(data):
             bscan.plot(areas=areas, layers=layers)
             plt.axis("off")
@@ -57,7 +74,7 @@ def plot_bscans(ctx: click.Context, drusen, layers):
                 save_path / f"{bscan.index}.jpeg",
                 bbox_inches="tight",
                 pad_inches=0,
-                dpi=200,
+                dpi=300,
             )
             plt.close()
 

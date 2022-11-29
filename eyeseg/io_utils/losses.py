@@ -38,13 +38,14 @@ def layer_ce(true, pred):
 
 class MovingMeanFocalSSE(tf.keras.losses.Loss):
     # initialize instance attributes
-    def __init__(self, window_size, curv_weight=0):
+    def __init__(self, window_size, curv_weight=0, focus_layer=False):
         super().__init__()
         self.curv_weight = curv_weight
         self.target_window_size = window_size
         self.window_size = tf.Variable(
             0, dtype=tf.float32, name="Window Size", trainable=False
         )
+        self.focus_layer = focus_layer
         self.ema = tf.Variable(0, dtype=tf.float32, name="EMA", trainable=False)
 
     # compute loss
@@ -56,7 +57,14 @@ class MovingMeanFocalSSE(tf.keras.losses.Loss):
         diff = y_true_clean - y_pred_clean
         squared_error = (diff) ** 2
 
-        if not self.target_window_size == 0:
+        if self.focus_layer is True:
+            layer_scores = tf.math.softmax(
+                tf.math.reduce_sum(diff, axis=(0, 1), keepdims=True), axis=2
+            )
+            focal_mse = tf.math.reduce_sum(layer_scores * squared_error, axis=(1, 2))
+            mse = tf.math.reduce_sum(squared_error, axis=(1, 2))
+            mse = 0.2 * focal_mse + 0.8 * mse
+        elif not self.target_window_size == 0:
             abs_error = tf.math.abs(diff)
             mae = tf.math.reduce_mean(abs_error)
             new_windowsize = tf.cond(

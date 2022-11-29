@@ -18,14 +18,19 @@ endif
 
 
 # Copy all code and models to build a production image
-build_gpu:
-	DOCKER_BUILDKIT=1 docker build -t medvisbonn/eyeseg:0.2-gpu -f Dockerfile --target gpu ../
+build_eyeseg:
+	poetry build
+
+build_gpu: build_eyeseg
+	DOCKER_BUILDKIT=1 docker build -t olcifer/eyeseg:0.1-gpu -f Dockerfile --target gpu ../dist
+	mkdir -p ./dist
+	docker save -o ./dist/docker_eyeseg-0.1-gpu.tar olcifer/eyeseg:0.1-gpu
+	gzip ./dist/docker_eyeseg-0.1-gpu.tar
 
 build_cpu:
-	DOCKER_BUILDKIT=1 docker build -t medvisbonn/eyeseg:0.2-cpu -f Dockerfile --target cpu ../
+	DOCKER_BUILDKIT=1 docker build -t olcifer/eyeseg:0.1-cpu -f Dockerfile --target cpu ../dist
+	mkdir -p ./dist
+	docker save -o ./dist/docker_eyeseg-0.1-cpu.tar olcifer/eyeseg:0.1-cpu
+	gzip ./dist/docker_eyeseg-0.1-cpu.tar
 
 build_all: build_gpu build_cpu
-
-
-bash:
-	docker run $(USER) -it $(GPUFLAG) -v $(DATA):/home/data medvisbonn/eyeseg:0.2-$(COMPUTETAG)

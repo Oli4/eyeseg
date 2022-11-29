@@ -1,10 +1,5 @@
 import click
 import logging
-import yaml
-from pathlib import Path
-from eyeseg.io_utils.input_pipe import get_split
-
-import matplotlib.pyplot as plt
 
 logger = logging.getLogger("eyeseg.evaluate")
 
@@ -27,6 +22,12 @@ logger = logging.getLogger("eyeseg.evaluate")
 @click.pass_context
 def plot_data(ctx: click.Context, model_config, number_of_examples):
     """Visualize dataset after transformation/augmentation"""
+    # Delay imports for faster CLI
+    import yaml
+    from pathlib import Path
+    import matplotlib.pyplot as plt
+    from eyeseg.io_utils.input_pipe import get_split
+
     input_path = ctx.obj["input_path"]
     output_path = ctx.obj["output_path"]
 

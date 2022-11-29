@@ -1,24 +1,6 @@
-import os
 import click
 import logging
-from pathlib import Path
-import yaml
-import wandb
-from wandb.keras import WandbCallback
 
-from eyeseg.models.feature_refinement_net import model
-from eyeseg.io_utils.input_pipe import (
-    get_augment_function,
-    get_parse_function,
-    get_transform_func_combined,
-    _normalize,
-    _prepare_train,
-)
-from eyeseg.io_utils.losses import MovingMeanFocalSSE, layer_ce
-from eyeseg.io_utils.input_pipe import get_split, count_samples
-from eyeseg.io_utils.utils import get_metrics
-
-import tensorflow as tf
 
 logger = logging.getLogger("eyeseg.train")
 
@@ -116,6 +98,27 @@ def train(
     curv_weight,
 ):
     """Train a new layer segmentation model"""
+    # Delay imports for faster CLI
+    import os
+    from pathlib import Path
+    import yaml
+    import wandb
+    from wandb.keras import WandbCallback
+
+    from eyeseg.models.feature_refinement_net import model
+    from eyeseg.io_utils.input_pipe import (
+        get_augment_function,
+        get_parse_function,
+        get_transform_func_combined,
+        _normalize,
+        _prepare_train,
+    )
+    from eyeseg.io_utils.losses import MovingMeanFocalSSE, layer_ce
+    from eyeseg.io_utils.input_pipe import get_split, count_samples
+    from eyeseg.io_utils.utils import get_metrics
+
+    import tensorflow as tf
+
     input_path = ctx.obj["input_path"]
     output_path = ctx.obj["output_path"]
 
@@ -265,6 +268,7 @@ def train(
     loss_fn = MovingMeanFocalSSE(
         window_size=config["training"]["boosting_window_size"],
         curv_weight=config["training"]["curv_weight"],
+        focus_layer=config["training"]["focus_layer"],
     )
     if config["parameters"]["soft_layerhead"]:
         losses = {"layer_output": loss_fn, "columnwise_softmax": layer_ce}

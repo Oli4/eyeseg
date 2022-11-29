@@ -1,10 +1,6 @@
 import click
 import logging
 
-import eyepy as ep
-from tqdm import tqdm
-import pandas as pd
-
 logger = logging.getLogger("eyeseg.quantify")
 
 
@@ -43,10 +39,20 @@ def quantify(ctx: click.Context, radii, sectors, offsets):
     :param offsets:
     :return:
     """
+    # Delay imports for faster CLI
+    import eyepy as ep
+    from tqdm import tqdm
+    import pandas as pd
+
     input_path = ctx.obj["input_path"]
     output_path = ctx.obj["output_path"]
 
-    volumes = [p for p in (input_path / "processed").iterdir() if p.suffix == ".eye"]
+    volumes = [
+        p for p in (input_path / "processed").iterdir() if p.suffix == ".eye"
+    ]
+    if len(volumes) == 0:
+        logger.error(f"No data found in '{input_path}/processed' folder.")
+        raise click.Abort
 
     # Read data
     results = []

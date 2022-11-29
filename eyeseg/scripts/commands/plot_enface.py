@@ -1,12 +1,5 @@
 import click
-from pathlib import Path
 import logging
-import eyepy as ep
-from tqdm import tqdm
-import pickle
-import matplotlib.pyplot as plt
-
-from eyeseg.scripts.utils import find_volumes
 
 logger = logging.getLogger("eyeseg.plot_enface")
 
@@ -18,26 +11,44 @@ logger = logging.getLogger("eyeseg.plot_enface")
     help="Whether to plot drusen overlay Default is --drusen.",
 )
 @click.option(
-    "--bscan_area/--no-bscan_area",
+    "--bscan-area/--no-bscan-area",
     default=False,
-    help="Whether to plot a rectangle surrounding the B-scan area. Default is --no-bscan_area.",
+    help=
+    "Whether to plot a rectangle surrounding the B-scan area. Default is --no-bscan_area.",
 )
 @click.option(
-    "--bscan_positions/--no-bscan_positions",
-    default=False,
-    help="Whether to plot B-scan positions. Default is --no-bscan_positions.",
+    "--bscan-position",
+    "-p",
+    default=[],
+    type=click.IntRange(0),
+    multiple=True,
+    help=
+    "Index of B-scan to mark on the enface plot. Multiple values can be passed.",
 )
 @click.pass_context
-def plot_enface(ctx: click.Context, drusen, bscan_area, bscan_positions):
+def plot_enface(ctx: click.Context, drusen, bscan_area, bscan_position):
     """Plot drusen enface projections and B-scans
 
     \f
     :return:
     """
+    # Delay imports for faster CLI
+    import eyepy as ep
+    from eyeseg.scripts.utils import find_volumes
+    from pathlib import Path
+    from tqdm import tqdm
+    import pickle
+    import matplotlib.pyplot as plt
+
     input_path = ctx.obj["input_path"]
     output_path = ctx.obj["output_path"]
 
-    volumes = [p for p in (input_path / "processed").iterdir() if p.suffix == ".eye"]
+    volumes = [
+        p for p in (input_path / "processed").iterdir() if p.suffix == ".eye"
+    ]
+    if len(volumes) == 0:
+        logger.error(f"No data found in '{input_path}/processed' folder.")
+        raise click.Abort
 
     for path in tqdm(volumes):
         # Load data
@@ -46,14 +57,16 @@ def plot_enface(ctx: click.Context, drusen, bscan_area, bscan_positions):
         save_path = output_path / "plots" / "enface"
         save_path.mkdir(parents=True, exist_ok=True)
 
-        if not bscan_positions:
-            bscan_positions = None
+        #if not bscan_positions:
+        #    bscan_positions = None
         data.plot(
             projections=["drusen"],
             bscan_region=bscan_area,
-            bscan_positions=bscan_positions,
+            bscan_positions=bscan_position,
         )
-        plt.savefig(save_path / f"{path.stem}.jpeg", bbox_inches="tight", dpi=200)
+        plt.savefig(save_path / f"{path.stem}.jpeg",
+                    bbox_inches="tight",
+                    dpi=300)
         plt.close()
 
     click.echo("\nDrusen enface plots are saved.")

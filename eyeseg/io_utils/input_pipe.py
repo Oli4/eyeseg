@@ -18,7 +18,7 @@ def get_parse_function(mapping, input_shape, **extra_features):
         other_features = {
             "volume": tf.io.FixedLenFeature([], tf.string),
             "bscan": tf.io.FixedLenFeature([], tf.string),
-            "layer_positions": tf.io.FixedLenFeature([], tf.string),
+            # "layer_positions": tf.io.FixedLenFeature([], tf.string),
             "image": tf.io.FixedLenFeature([], tf.string),
             "group": tf.io.FixedLenFeature([], tf.string),
         }
@@ -35,10 +35,10 @@ def get_parse_function(mapping, input_shape, **extra_features):
         image = tf.io.parse_tensor(data["image"], tf.uint8)
         image = tf.reshape(image, input_shape + (1,), name="reshape_1")
 
-        layer_positions = tf.io.parse_tensor(data["layer_positions"], tf.float32)
-        layer_positions = tf.reshape(
-            layer_positions, input_shape + (len(mapping),), name="reshape_1.5"
-        )
+        # layer_positions = tf.io.parse_tensor(data["layer_positions"], tf.float32)
+        # layer_positions = tf.reshape(
+        #    layer_positions, input_shape + (len(mapping),), name="reshape_1.5"
+        # )
 
         # Sort mapping for guaranteed order
         layerout = tf.stack(
@@ -57,7 +57,7 @@ def get_parse_function(mapping, input_shape, **extra_features):
         group = data["group"]
 
         return {
-            "layer_positions": layer_positions,
+            # "layer_positions": layer_positions,
             "image": image,
             "layerout": layerout,
             "Volume": volume,
@@ -92,7 +92,7 @@ def get_augment_function(
         return {
             "image": image,
             "layerout": layerout,
-            "layer_positions": in_data["layer_positions"],
+            # "layer_positions": in_data["layer_positions"],
         }
 
     return _augment
@@ -115,20 +115,22 @@ def _normalize(in_data):
         **{
             "image": image,
             "layerout": layerout,
-            "layer_positions": in_data["layer_positions"],
+            # "layer_positions": in_data["layer_positions"],
         },
     }
 
 
 @tf.function
 def _prepare_train(in_data):
-    image, layerout, layer_positions = (
+    image, layerout = (
         in_data["image"],
         in_data["layerout"],
-        in_data["layer_positions"],
+        # in_data["layer_positions"],
     )
 
-    return image, {"layer_output": layerout, "columnwise_softmax": layer_positions}
+    return image, {
+        "layer_output": layerout,
+    }  # "columnwise_softmax": layer_positions}
 
 
 @tf.function
@@ -159,7 +161,7 @@ def _prepare_train_layer(layer):
         )
         return image, {
             "layer_output": layerout,
-            "columnwise_softmax": in_data["layer_positions"],
+            # "columnwise_softmax": in_data["layer_positions"],
         }
 
     return _prepare_train

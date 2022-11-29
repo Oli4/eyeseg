@@ -1,14 +1,6 @@
 import click
 import logging
-import yaml
-import numpy as np
-import pickle
-import matplotlib.pyplot as plt
 
-from eyeseg.models.feature_refinement_net import model
-from eyeseg.io_utils.losses import MovingMeanFocalSSE
-from eyeseg.io_utils.input_pipe import get_split
-from eyeseg.io_utils.utils import get_metrics
 
 logger = logging.getLogger("eyeseg.evaluate")
 
@@ -18,7 +10,7 @@ logger = logging.getLogger("eyeseg.evaluate")
     "-r",
     "--run-path",
     type=click.Path(exists=True),
-    help="Path to folder with model configuration and network weights. (config.yaml; model-best.h5)",
+    help="Path to folder with model configuration and network weights. (model_config.yaml; model-best.h5)",
 )
 @click.option(
     "-s",
@@ -40,6 +32,16 @@ def evaluate(
     plot,
 ):
     """Evaluate a model on a test dataset"""
+    # Delay imports for faster CLI
+    import yaml
+    import numpy as np
+    import pickle
+    import matplotlib.pyplot as plt
+    from eyeseg.models.feature_refinement_net_he import model
+    from eyeseg.io_utils.losses import MovingMeanFocalSSE
+    from eyeseg.io_utils.input_pipe import get_split
+    from eyeseg.io_utils.utils import get_metrics
+
     input_path = ctx.obj["input_path"]
     output_path = ctx.obj["output_path"]
 
@@ -66,9 +68,9 @@ def evaluate(
         input_path,
         config["layer_mapping"],
         input_shape,
-        1,
-        1,
-        "test",
+        batch_size=1,
+        epochs=1,
+        split="test",
     )
     metrics = get_metrics(config["layer_mapping"])
 
@@ -89,6 +91,8 @@ def evaluate(
         sample_weight_mode="temporal",
     )
 
+    (output_path / "results").mkdir(parents=True, exist_ok=True)
+
     results = {}
     for image, data in test_data:
         prediction = my_model.predict(image)
@@ -101,15 +105,16 @@ def evaluate(
 
         results[(volume, bscan, group)] = np.abs(prediction - layerout)
 
-        (output_path / "results").mkdir(parents=True, exist_ok=True)
         if plot:
             plt.imshow(image[0, ..., 0], cmap="gray")
             for layer in range(9):
                 plt.plot(image.shape[1] - prediction[0, ..., layer])
+
             plt.savefig(
                 output_path
                 / "results"
-                / f"{np.mean(results[(volume, bscan, group)]):.2f}_{volume}_{bscan}.jpeg"
+                / f"{np.mean(results[(volume, bscan, group)]):.2f}_{volume}_{bscan}.jpeg",
+                bbox_inches="tight",
             )
             plt.close()
 
