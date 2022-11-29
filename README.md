@@ -15,10 +15,6 @@ For GPU access you might have to install additional dependencies such as the CUD
 ### Docker
 You can use our prebuild docker images and run eyeseg within a container on mounted data. This only requires a working docker installation. You need nvidia-docker2 for GPU support which sigificantly speeds up segmentations. For more information on how to install docker and nvidia-docker2, please refer to the [docker documentation](https://docs.docker.com/install/).
 
-> **⚠ Note:**
->
-> Before publication the images are not available from the docker hub. Instead you need to download prebuild images here and unpack them with `docker load -i eyeseg-0.1-gpu.tar.gz`. Then you can use the images as described below.
-
 
 For CPU only support, you can use the CPU image:
 ```bash
