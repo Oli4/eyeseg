@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "eyeseg"
-version = "0.3.0"
+version = "0.0.0"
 description = "A python command line tool to segment drusen and retinal layers in OCT images."
 authors = ["Olivier Morelle <oli4morelle@gmail.com>"]
 
@@ -36,7 +36,8 @@ requires = ["poetry-core>=1.2.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.semantic_release]
-major_on_zero = true
+branch = "main"
+major_on_zero = false
 version_variable = ['eyeseg/__init__.py:__version__']
 version_toml = "pyproject.toml:tool.poetry.version"
 version_pattern = ["CITATION.cff:v(\\d+\\.\\d+\\.\\d+)", "docker/Makefile:v(\\d+\\.\\d+\\.\\d+)"]
