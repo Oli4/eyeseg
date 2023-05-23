@@ -72,10 +72,10 @@ def main(ctx, input_path, output_path, log_level, gpu):
 
     os.environ['TF_CPP_MIN_VLOG_LEVEL'] = log_int[log_level]
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = log_int[log_level]
-    import tensorflow as tf
+    from tensorflow import get_logger as get_tf_logger
+    from tensorflow import config as tf_config
 
-    tf.get_logger().setLevel(log_level)
-    import warnings
+    get_tf_logger().setLevel(log_level)
 
     ctx.ensure_object(dict)
 
@@ -99,6 +99,7 @@ def main(ctx, input_path, output_path, log_level, gpu):
     logger.setLevel(log_level)
 
     if log_level != logging.DEBUG:
+        import warnings
         warnings.filterwarnings("ignore")
 
     ctx.obj["input_path"] = Path(input_path)
@@ -106,8 +107,8 @@ def main(ctx, input_path, output_path, log_level, gpu):
 
     # Select gpu
     try:
-        gpus = tf.config.list_physical_devices("GPU")
-        tf.config.experimental.set_visible_devices(gpus[gpu], "GPU")
+        gpus = tf_config.list_physical_devices("GPU")
+        tf_config.experimental.set_visible_devices(gpus[gpu], "GPU")
     except IndexError:
         msg = "No GPU found, using the CPU instead."
         logger.warning(msg)

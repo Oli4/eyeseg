@@ -29,7 +29,6 @@ def plot_bscans(ctx: click.Context, drusen, layers):
     import eyepy as ep
     from tqdm import tqdm
     import matplotlib.pyplot as plt
-    import numpy as np
 
     input_path = ctx.obj["input_path"]
     output_path = ctx.obj["output_path"]
@@ -44,7 +43,7 @@ def plot_bscans(ctx: click.Context, drusen, layers):
     if drusen:
         areas = ["drusen"]
     else:
-        ares = []
+        areas = []
 
     for path in tqdm(volumes):
         # Load data
@@ -52,20 +51,26 @@ def plot_bscans(ctx: click.Context, drusen, layers):
         save_path = output_path / "plots" / "bscans" / path.stem
         save_path.mkdir(parents=True, exist_ok=True)
 
-        #for key in data.layers:
-        #heights = data.layers[key].data
-        #heights_clean = np.full_like(heights, np.nan)
-        #heights_clean[:, 100:-100] = heights[:, 100:-100]
-        #data.layers[key].data = heights_clean
+        rpe_names = [l for l in data.layers if "RPE_" in l]
+        bm_names = [l for l in data.layers if "BM_" in l]
+
+        if len(rpe_names) > 1 or len(bm_names) > 1:
+            logger.warning(
+                f"Multiple RPE or BM layers found. Using the first one. \nRPE Annotations: {rpe_names} \nBM Annotations: {bm_names}"
+            )
 
         drusen = ep.drusen(
-            data.layers["RPE"],
-            data.layers["BM"],
+            data.layers[rpe_names[0]],
+            data.layers[bm_names[0]],
             data.shape,
             minimum_height=5,
         )
-        data.delete_voxel_annotations("drusen")
-        data.add_voxel_annotation(drusen, name="drusen")
+        try:
+            data.remove_pixel_annotations("drusen")
+        except:
+            # For the case that eyepy corrects the function name
+            data.remove_pixel_annotation("drusen")
+        data.add_pixel_annotation(drusen, name="drusen")
 
         for bscan in tqdm(data):
             bscan.plot(areas=areas, layers=layers)

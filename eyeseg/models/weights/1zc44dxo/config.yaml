@@ -1,8 +1,8 @@
 device: "spectralis"
 module: "eyeseg.models.feature_refinement_net"
 layer_mapping:
-  0: BM
-  1: RPE
+  0: BM_1zc44dxo
+  1: RPE_1zc44dxo
 parameters:
   num_classes: 2
   filters: 64

@@ -2,34 +2,40 @@
 eyeseg is a command line application to segment OCT layers and quantify drusen. It can read and process Spectralis XML and VOL exports. Models used for OCT layer segmentation might give unexpected results on data from other devices than Spectralis.
 
 ## Installation
-You can install `eyeseg` with pip. Therefore you first clone this repository and then install it with pip. Use a virtual environment to avoid conflicts with other packages.
+You can install `eyeseg` with pip. Use a virtual environment to avoid conflicts with other packages.
 
 ```bash
-git clone https://github.com/Oli4/eyeseg.git
-cd eyeseg
-pip install .
+pip install eyeseg
 ```
 
 For GPU access you might have to install additional dependencies such as the CUDA Toolkit and cuDNN. Predictions using only the CPU are possible but a lot slower. A convenient alternative to installing additional depencies is to use our docker image. See the section "Docker" for more information.
 
 ### Docker
-You can use our prebuild docker images and run eyeseg within a container on mounted data. This only requires a working docker installation. You need nvidia-docker2 for GPU support which sigificantly speeds up segmentations. For more information on how to install docker and nvidia-docker2, please refer to the [docker documentation](https://docs.docker.com/install/).
+You can build the docker image yourself using the Makefile in the `docker/` folder or use the prebuild images on [Docker Hub](https://hub.docker.com/r/olcifer/eyeseg).
 
+#### Build docker image
+```bash
+cd docker
+make build_gpu
+```
+
+#### Run docker image
+
+Running eyeseg in a docker container on mounted data only requires a working docker installation. You need nvidia-docker2 for GPU support which sigificantly speeds up segmentations. For more information on how to install docker and nvidia-docker2, please refer to the [docker documentation](https://docs.docker.com/install/).
 
 For CPU only support, you can use the CPU image:
 ```bash
-docker run -u $(id -u):$(id -g) -it -v $(DATA):/home/data olcifer/eyeseg:0.1-cpu
+docker run -u $(id -u):$(id -g) -it -v $(DATA):/home/data olcifer/eyeseg:0.3.0-cpu
 ```
-
 For GPU support, you can use the GPU image:
 ```bash
-docker run -u $(id -u):$(id -g) -it --gpus=all -v $(DATA):/home/data olcifer/eyeseg:0.1-gpu
+docker run -u $(id -u):$(id -g) -it --gpus=all -v $(DATA):/home/data olcifer/eyeseg:0.3.0-gpu
 ```
 
-In both cases you need to mount your data to the container by replacing $(DATA) with the path to your data. The container will run as the current user and group. This is important to avoid permission issues with the mounted data. Your working directory is your mounted data.
+In both cases you need to mount your data to the container by replacing $(DATA) with the path to your data. Depending on whether you want to use a prebuild image or not you have to adapt the image name. The container will run as the current user and group. This is important to avoid permission issues with the mounted data. Your working directory is your mounted data.
 
 ## Requirements
-Your data has to be in the Spectralis XML or VOL export format. In case of the XML export, make sure that your data is exported with a black background and every folder contains a single volume (single XML file).
+Your data has to be in the Spectralis XML or VOL export format. In case of the XML export, make sure that your data is exported with a black background and every folder contains a single volume (single XML file). There is also a model available for Bioptigen data, trained on the Duke dataset. However, Biotigen data is not that common and the model is here mainly for reproducibility of the results described in the respective publication (https://doi.org/10.1038/s41598-023-35230-4).
 
 ## Usage
 After installation via pip or starting the docker container, you can use the eyeseg command line application. You can run `eyeseg` without any arguments to see a help message.
@@ -37,7 +43,7 @@ After installation via pip or starting the docker container, you can use the eye
 ### Available commands
 `eyeseg` provides the following commands all with their own help message for more information:
 
-* `eyeseg check` - check mounted data for common problems such as inverted contrast and multiple exports per directory
+* `eyeseg check` - check mounted data for common problems such as inverted contrast and multiple exports per directory (only XML)
 * `eyeseg segment` - Segment OCT layers, compute drusen and save results as .eye files
 * `eyeseg quantify` - Quantify drusen from .eye files and save results as .csv file
 * `eyeseg plot-enface` - Plot enface images with drusen segmentation overlay

@@ -11,10 +11,7 @@ def check(
     ctx: click.Context,
 ):
     """Check XML exports for common problems"""
-    import eyepy as ep
     from eyeseg.scripts.utils import find_volumes
-    from tqdm import tqdm
-    import numpy as np
 
     input_path = ctx.obj["input_path"]
 
@@ -34,6 +31,8 @@ def check(
 
 
 def check_multiple_exports(v_paths):
+    # Delayed import for faster CLI
+    from tqdm import tqdm
     errors = 0
     for p in tqdm(v_paths, desc="Check for double exports: "):
         if len(list(p.glob("*.xml"))) != 1:
@@ -43,6 +42,10 @@ def check_multiple_exports(v_paths):
 
 
 def check_white_background(v_paths):
+    # Delayed import for faster CLI
+    from tqdm import tqdm
+    import numpy as np
+    import eyepy as ep
     errors = 0
     for p in tqdm(v_paths, desc="Check for inverted contrast: "):
         data = ep.import_heyex_xml(p)

@@ -1,0 +1,64 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: eyeseg
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Olivier
+    family-names: Morelle
+    email: oli4morelle@gmail.com
+    affiliation: >-
+      University of Bonn - Bonn-Aachen International
+      Center for Information Technology (b-it) /
+      University Hospital Bonn - Department of
+      Ophthalmology
+    orcid: 'https://orcid.org/0000-0001-6404-2726'
+identifiers:
+  - type: doi
+    value: 10.1038/s41598-023-35230-4
+    description: The DOI of the related Scientific Reports Publication
+repository-code: 'https://github.com/MedVisBonn/eyeseg'
+abstract: >-
+  Drusen are an important biomarker for age-related macular
+  degeneration (AMD). Their accurate segmentation based on
+  optical coherence tomography (OCT) is therefore relevant
+  to the detection, staging, and treatment of disease. Since
+  manual OCT segmentation is resource-consuming and has low
+  reproducibility, automatic techniques are required. In
+  this work, we introduce a novel deep learning based
+  architecture that directly predicts the position of layers
+  in OCT and guarantees their correct order, achieving
+  state-of-the-art results for retinal layer segmentation.
+  In particular, the average absolute distance between our
+  model's prediction and the ground truth layer segmentation
+  in an AMD dataset is 0.63, 0.85, and 0.44 pixel for
+  Bruch's membrane (BM), retinal pigment epithelium (RPE)
+  and ellipsoid zone (EZ), respectively. Based on layer
+  positions, we further quantify drusen load with excellent
+  accuracy, achieving 0.994 and 0.988 Pearson correlation
+  between drusen volumes estimated by our method and two
+  human readers, and increasing the Dice score to 0.71 ±
+  0.16 (from 0.60 ± 0.23) and 0.62 ± 0.23 (from 0.53 ±
+  0.25), respectively, compared to a previous
+  state-of-the-art method. Given its reproducible, accurate,
+  and scalable results, our method can be used for the
+  large-scale analysis of OCT data.
+keywords:
+  - OCT
+  - Layer
+  - Segmentation
+  - Drusen
+  - AMD
+  - Biomarker
+  - Spectralis
+  - BM
+  - RPE
+  - EZ
+license: MIT
+commit: 094cca0029cd8b270e99112b778d0bb0aed528cd
+version: 0.1.0
+date-released: '2023-05-22'

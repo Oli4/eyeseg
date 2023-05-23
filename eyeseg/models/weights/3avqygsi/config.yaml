@@ -1,9 +1,9 @@
 device: "bioptigen"
 module: "eyeseg.models.feature_refinement_net"
 layer_mapping:
-  0: BM
-  1: RPE
-  2: ILM
+  0: BM_3avqygsi
+  1: RPE_3avqygsi
+  2: ILM_3avqygsi
 parameters:
   num_classes: 3
   filters: 64

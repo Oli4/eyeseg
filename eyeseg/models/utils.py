@@ -26,7 +26,7 @@ def load_model(model_id, input_shape):
     return layer_model, model_config
 
 
-def preprocess_standard(data, input_width):
+def preprocess_spectralis(data, input_width):
     image = np.zeros((512, input_width))
     image[:496, :input_width] = data
     image = image - np.mean(image)
@@ -34,9 +34,24 @@ def preprocess_standard(data, input_width):
     image = np.reshape(image, (1, 512, input_width, 1))
     return image
 
+def preprocess_bioptigen(data, input_width):
+    image = data
+    image = image - np.mean(image)
+    image = image / np.std(image)
+    image = np.reshape(image, (1, 512, input_width, 1))
+    return image
 
-def get_layers(data, model_id):
-    if data.meta["scale_x"] < 0.009:
+def preprocess(data, input_width, device):
+    if device == "spectralis":
+        return preprocess_spectralis(data, input_width)
+    elif device == "bioptigen":
+        return preprocess_bioptigen(data, input_width)
+    else:
+        raise ValueError(f"Unknown device {device}")
+
+
+def get_layers(data, model_id, device="spectralis"):
+    if data.meta["scale_x"] < 0.009 and device=="spectralis":
         factor = 2
     else:
         factor = 1
@@ -44,13 +59,13 @@ def get_layers(data, model_id):
     width = data[0].shape[1]
     layer_model, model_config = load_model(model_id, (512, width // factor, 1))
     results = []
-    for bscan in tqdm(data, desc=f"Predict '{data.meta['visit_date']}': "):
+    for bscan in tqdm(data, desc=f"Predict Volume: ", position=1, leave=False):
         img = skimage.transform.rescale(bscan.data, (1, 1 / factor))
-        img = preprocess_standard(img, width // factor)
+        img = preprocess(img, width // factor, device)
         prediction = layer_model.predict(img, verbose=0)[0]
         results.append(prediction)
 
-    results = np.flip(np.stack(results, axis=0), axis=0)
+    results = np.stack(results, axis=0)
     for index, name in model_config["layer_mapping"].items():
         if factor != 1:
             height_map = skimage.transform.rescale(results[..., index],
